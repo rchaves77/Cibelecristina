@@ -1,0 +1,6 @@
+{
+  "name": "MEDICINARTE — Dra. Cibele Cristina | Medicina de Família e Comunidade",
+  "description": "Atendimento médico próximo, individualizado e baseado em evidências com a Dra. Cibele Cristina. Especialista em Medicina de Família e Comunidade, CRM-AC 1810 | RQE 1078.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
