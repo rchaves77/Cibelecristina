@@ -136,12 +136,11 @@ export function PublicLandingPage() {
       <header className="site-header">
         <div className="header-inner">
           <a href="#inicio" className="brand-wrap" aria-label={`Página Inicial - ${DOCTOR_INFO.name}`}>
-            <div className="monogram-badge" aria-hidden="true">
-              <span className="monogram-text">CC</span>
-              <svg className="monogram-heart" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Dra. Cibele Cristina" 
+              className="w-10 h-10 rounded-xl object-contain bg-[#FAF8F5] p-0.5 border border-[#C5A059]/40 shadow-sm shrink-0"
+            />
             <div className="brand-titles">
               <span className="brand-name">
                 <span className="dr-prefix">{DOCTOR_INFO.prefix}</span>Cibele Cristina
@@ -234,12 +233,11 @@ export function PublicLandingPage() {
       >
         <div className="drawer-header">
           <div className="drawer-brand">
-            <div className="monogram-badge" style={{ width: '38px', height: '38px' }} aria-hidden="true">
-              <span className="monogram-text" style={{ fontSize: '0.9rem' }}>CC</span>
-              <svg className="monogram-heart" viewBox="0 0 24 24" style={{ width: '7px', height: '7px' }}>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Dra. Cibele Cristina" 
+              className="w-9 h-9 rounded-lg object-contain bg-[#FAF8F5] p-0.5 border border-[#C5A059]/40 shrink-0"
+            />
             <div>
               <div style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--accent)', lineHeight: 1.2 }}>
                 Dra. Cibele Cristina
@@ -976,12 +974,11 @@ export function PublicLandingPage() {
           {/* Painel Direito: Formulário com Redirecionamento Direto */}
           <div className="contact-action-panel">
             <div className="booking-callout">
-              <div className="monogram-badge" style={{ margin: '0 auto 1.25rem', width: '52px', height: '52px' }}>
-                <span className="monogram-text" style={{ fontSize: '1.2rem' }}>CC</span>
-                <svg className="monogram-heart" viewBox="0 0 24 24" style={{ width: '10px', height: '10px' }}>
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                </svg>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Logo Dra. Cibele Cristina" 
+                className="w-14 h-14 rounded-2xl object-contain bg-[#FAF8F5] p-1 border border-[#C5A059]/40 shadow-sm mx-auto mb-4 block"
+              />
               <h4 id="inicie-plano">Inicie seu plano de cuidado</h4>
               <p style={{ marginBottom: '1.25rem' }}>
                 Selecione o serviço e informe seu nome para abrir o WhatsApp com mensagem pré-preenchida.
@@ -1173,10 +1170,12 @@ export function PublicLandingPage() {
       <footer className="site-footer">
         <div className="footer-inner">
           <div className="footer-col">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-              <div className="monogram-badge" style={{ width: '36px', height: '36px' }}>
-                <span className="monogram-text" style={{ fontSize: '0.85rem' }}>CC</span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <img 
+                src="/logo.png" 
+                alt="Logo Dra. Cibele Cristina" 
+                className="w-10 h-10 rounded-xl object-contain bg-[#FAF8F5] p-0.5 border border-[#C5A059]/40 shrink-0"
+              />
               <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem', color: '#FFFFFF', fontWeight: 700 }}>
                 {DOCTOR_INFO.name}
               </span>

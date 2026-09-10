@@ -110,7 +110,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBooking, onOpenLattes }) => {
                 {/* Doctor Photo */}
                 <div className="relative h-80 sm:h-96 w-full bg-[#FAF8F5]">
                   <img
-                    src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80"
+                    src="/cibele.png"
                     alt="Dra. Cibele Cristina Cunha Brígido"
                     className="w-full h-full object-cover object-top"
                   />
@@ -122,7 +122,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBooking, onOpenLattes }) => {
                       Atendimento Humanizado
                     </div>
                     <p className="text-xl font-serif italic font-bold tracking-tight">Dra. Cibele Cristina Cunha Brígido</p>
-                    <p className="text-xs text-[#DCE7E5] font-light">Médica de Família e Comunidade • CRM 3482/AC</p>
+                    <p className="text-xs text-[#DCE7E5] font-light">Médica de Família e Comunidade • CRM-AC 1810 • RQE 1078</p>
                   </div>
                 </div>
 

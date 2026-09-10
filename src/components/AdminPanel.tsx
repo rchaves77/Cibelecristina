@@ -183,7 +183,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onPosts
       author: {
         name: 'Dra. Cibele Cristina',
         role: 'Médica de Família e Comunidade',
-        avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80'
+        avatar: '/cibele.png'
       },
       readTimeMinutes: Number(postForm.readTimeMinutes) || 4,
       status: postForm.status,
@@ -452,7 +452,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onPosts
                               author: {
                                 name: 'Dra. Cibele Cristina',
                                 role: 'Médica de Família e Comunidade',
-                                avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80'
+                                avatar: '/cibele.png'
                               },
                               publishedAt: new Date().toISOString().split('T')[0],
                               readTimeMinutes: postForm.readTimeMinutes,

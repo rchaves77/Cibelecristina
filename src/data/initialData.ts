@@ -63,7 +63,7 @@ Agende sua consulta e venha conversar sobre sua saúde com tranquilidade. Cuidar
     author: {
       name: 'Dra. Cibele Cristina',
       role: 'Médica de Família e Comunidade',
-      avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80'
+      avatar: '/cibele.png'
     },
     publishedAt: '2026-08-28',
     readTimeMinutes: 4,
@@ -95,7 +95,7 @@ Trazer seu filho para as consultas de rotina fortalece o vínculo de confiança 
     author: {
       name: 'Dra. Cibele Cristina',
       role: 'Médica de Família e Comunidade',
-      avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80'
+      avatar: '/cibele.png'
     },
     publishedAt: '2026-08-15',
     readTimeMinutes: 5,
@@ -125,7 +125,7 @@ Com o acompanhamento regular, você previne complicações renais, oculares e ca
     author: {
       name: 'Dra. Cibele Cristina',
       role: 'Médica de Família e Comunidade',
-      avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80'
+      avatar: '/cibele.png'
     },
     publishedAt: '2026-08-05',
     readTimeMinutes: 4,
@@ -151,7 +151,7 @@ Com o acompanhamento regular, você previne complicações renais, oculares e ca
     author: {
       name: 'Dra. Cibele Cristina',
       role: 'Médica de Família e Comunidade',
-      avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80'
+      avatar: '/cibele.png'
     },
     publishedAt: '2026-07-20',
     readTimeMinutes: 5,
@@ -184,7 +184,7 @@ Durante o sono profundo, o cérebro realiza uma verdadeira faxina metabólica, c
     author: {
       name: 'Dra. Cibele Cristina',
       role: 'Médica de Família e Comunidade',
-      avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80'
+      avatar: '/cibele.png'
     },
     publishedAt: '2026-07-10',
     readTimeMinutes: 4,

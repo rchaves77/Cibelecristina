@@ -71,9 +71,11 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
       <aside className="hidden md:flex flex-col w-64 bg-[#142E28] text-white border-r border-[#1B3E36] shrink-0">
         {/* Header do Sistema com Identidade Visual */}
         <div className="p-4 border-b border-[#1D443B] flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#C5A059] text-[#142E28] flex items-center justify-center font-serif font-bold text-xl shadow-md shrink-0">
-            CC
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="Logo Dra. Cibele Cristina" 
+            className="w-10 h-10 rounded-xl object-contain bg-[#FAF8F5] p-0.5 border border-[#C5A059]/40 shadow-md shrink-0"
+          />
           <div className="min-w-0">
             <h1 className="font-serif font-semibold text-sm tracking-wide text-white truncate">
               Dra. Cibele Cristina
@@ -160,9 +162,11 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
       {/* HEADER MOBILE */}
       <header className="md:hidden flex items-center justify-between bg-[#142E28] text-white p-3 border-b border-[#1B3E36] sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#C5A059] text-[#142E28] flex items-center justify-center font-serif font-bold text-sm">
-            CC
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="Logo Dra. Cibele Cristina" 
+            className="w-8 h-8 rounded-lg object-contain bg-[#FAF8F5] p-0.5 border border-[#C5A059]/40 shrink-0"
+          />
           <div>
             <h1 className="font-serif font-semibold text-xs text-white">Dra. Cibele Cristina</h1>
             <p className="text-[10px] text-[#C5A059]">{DOCTOR_INFO.crm}</p>

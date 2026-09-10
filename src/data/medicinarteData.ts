@@ -66,8 +66,9 @@ export const DOCTOR_INFO = {
   whatsappNumber: '5568981034408',
   address: 'Rua Antunes de Alencar, 152 – Bosque, Rio Branco / AC',
   googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Rua+Antunes+de+Alencar,+152+-+Bosque+-+Rio+Branco/AC',
-  doctorImage: 'https://img.usecurling.com/ppl/large?gender=female&seed=doctor_cibele',
-  doctorImageFallback: 'https://img.usecurling.com/ppl/large?gender=female&seed=doctor_cibele'
+  logoImage: '/logo.png',
+  doctorImage: '/cibele.png',
+  doctorImageFallback: '/cibele.png'
 };
 
 export const PILLARS: PillarItem[] = [
