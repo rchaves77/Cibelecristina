@@ -62,7 +62,7 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
     { label: 'Simulador de Taxas', path: '/sistema/taxas', icon: CreditCard },
     { label: 'Financeiro & Caixa', path: '/sistema/financeiro', icon: DollarSign },
     { label: 'Relatórios & Gráficos', path: '/sistema/relatorios', icon: BarChart3 },
-    { label: 'Permissões & Usuários', path: '/sistema/permissoes', icon: ShieldCheck },
+    { label: 'Senhas, Perfis & GSC', path: '/sistema/permissoes', icon: ShieldCheck },
   ];
 
   return (

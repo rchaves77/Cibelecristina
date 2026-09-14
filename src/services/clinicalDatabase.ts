@@ -12,7 +12,8 @@ import {
   AuditoriaMapeamento,
   AlertaSobrecarga,
   DespesaOuReceita,
-  AgendamentoStatus
+  AgendamentoStatus,
+  GoogleSearchConsoleConfig
 } from '../types/clinical';
 import { DOCTOR_INFO } from '../data/medicinarteData';
 
@@ -31,7 +32,8 @@ const STORAGE_KEYS = {
   AUDITORIAS: 'cibele_db_auditorias_v1',
   ALERTAS_SOBRECARGA: 'cibele_db_alertas_sobrecarga_v1',
   FINANCEIRO: 'cibele_db_financeiro_v1',
-  SESSION: 'cibele_db_active_user_v1'
+  SESSION: 'cibele_db_active_user_v1',
+  GSC: 'cibele_db_gsc_v1'
 };
 
 // Seed Inicial de Perfis
@@ -49,7 +51,8 @@ const INITIAL_PERFIS: Perfil[] = [
     hora_inicio: '08:00',
     hora_fim: '18:00',
     crm: DOCTOR_INFO.crm,
-    rqe: DOCTOR_INFO.rqe
+    rqe: DOCTOR_INFO.rqe,
+    senha: 'cibele123'
   },
   {
     id: 'perfil-secretaria',
@@ -62,7 +65,8 @@ const INITIAL_PERFIS: Perfil[] = [
     permissao_confirmacao_amanha: true,
     dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
     hora_inicio: '08:00',
-    hora_fim: '18:00'
+    hora_fim: '18:00',
+    senha: 'recepcao123'
   },
   {
     id: 'perfil-admin',
@@ -75,7 +79,8 @@ const INITIAL_PERFIS: Perfil[] = [
     permissao_confirmacao_amanha: true,
     dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'],
     hora_inicio: '07:00',
-    hora_fim: '20:00'
+    hora_fim: '20:00',
+    senha: 'admin123'
   }
 ];
 
@@ -569,6 +574,128 @@ class ClinicalDatabaseService {
 
   savePerfil(updated: Perfil): void {
     this.updatePerfil(updated);
+  }
+
+  updateSenhaPerfil(perfilId: string, novaSenha: string): Perfil | null {
+    const perfis = this.getPerfis();
+    const idx = perfis.findIndex(p => p.id === perfilId);
+    if (idx === -1) return null;
+
+    perfis[idx] = {
+      ...perfis[idx],
+      senha: novaSenha,
+      senha_alterada_em: new Date().toISOString()
+    };
+    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+
+    // Se o usuário ativo for esse perfil, atualiza a sessão
+    const active = this.getActiveUser();
+    if (active && active.id === perfilId) {
+      this.setActiveUser(perfis[idx]);
+    }
+
+    return perfis[idx];
+  }
+
+  gerarResetSenha(emailOuId: string): { success: boolean; token: string; link: string; perfil?: Perfil; mensagemPreview: string } {
+    const perfis = this.getPerfis();
+    const cleanQuery = emailOuId.trim().toLowerCase();
+    const idx = perfis.findIndex(p => p.id === emailOuId || p.email.toLowerCase() === cleanQuery);
+    
+    if (idx === -1) {
+      return {
+        success: false,
+        token: '',
+        link: '',
+        mensagemPreview: 'Perfil não localizado no sistema Medicinarte.'
+      };
+    }
+
+    const token = 'rst_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+    const expira = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 horas
+
+    perfis[idx] = {
+      ...perfis[idx],
+      reset_token: token,
+      reset_token_expira: expira
+    };
+    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dracibelecristina.med.br';
+    const link = `${baseUrl}/reset-senha?token=${token}&email=${encodeURIComponent(perfis[idx].email)}`;
+
+    const mensagemPreview = `Olá, ${perfis[idx].nome}.\n\nRecebemos uma solicitação para redefinir a sua senha de acesso ao Sistema Clínico Medicinarte da Dra. Cibele Cristina.\n\nPara cadastrar sua nova senha com segurança, clique no link abaixo (válido por 24 horas):\n${link}\n\nSe você não solicitou esta redefinição, por favor ignore este aviso ou informe a Diretoria Técnica.\n\nMEDICINARTE SERVIÇOS MÉDICOS LTDA\nDiretora Técnica: Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
+
+    return {
+      success: true,
+      token,
+      link,
+      perfil: perfis[idx],
+      mensagemPreview
+    };
+  }
+
+  redefinirSenhaComToken(token: string, novaSenha: string): { success: boolean; message: string; perfil?: Perfil } {
+    const perfis = this.getPerfis();
+    const idx = perfis.findIndex(p => p.reset_token === token);
+    
+    if (idx === -1) {
+      return { success: false, message: 'Link de redefinição inválido ou já utilizado.' };
+    }
+
+    const perfil = perfis[idx];
+    if (perfil.reset_token_expira && new Date(perfil.reset_token_expira).getTime() < Date.now()) {
+      return { success: false, message: 'Este link de redefinição expirou (validade de 24 horas). Solicite um novo link.' };
+    }
+
+    perfis[idx] = {
+      ...perfil,
+      senha: novaSenha,
+      senha_alterada_em: new Date().toISOString(),
+      reset_token: undefined,
+      reset_token_expira: undefined
+    };
+    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+
+    return { success: true, message: `Senha de ${perfil.nome} alterada com sucesso!`, perfil: perfis[idx] };
+  }
+
+  getGoogleSearchConsoleConfig(): GoogleSearchConsoleConfig {
+    const defaultConfig: GoogleSearchConsoleConfig = {
+      token: 'google-site-verification=cibele_rio_branco_medicinarte_gsc',
+      htmlFileName: 'google-site-verification.html',
+      sitemapUrl: 'https://dracibelecristina.med.br/sitemap.xml',
+      propriedadeUrl: 'https://dracibelecristina.med.br',
+      status: 'configurado',
+      ultimaAtualizacao: new Date().toISOString()
+    };
+    return this.getStorage<GoogleSearchConsoleConfig>(STORAGE_KEYS.GSC, defaultConfig);
+  }
+
+  saveGoogleSearchConsoleConfig(token: string, htmlFileName?: string): GoogleSearchConsoleConfig {
+    const cleanToken = token.trim();
+    const current = this.getGoogleSearchConsoleConfig();
+    const updated: GoogleSearchConsoleConfig = {
+      ...current,
+      token: cleanToken,
+      htmlFileName: htmlFileName ? htmlFileName.trim() : current.htmlFileName,
+      status: cleanToken.length > 5 ? 'configurado' : 'pendente',
+      ultimaAtualizacao: new Date().toISOString()
+    };
+    this.setStorage(STORAGE_KEYS.GSC, updated);
+
+    // Atualiza dinamicamente a meta tag no DOM
+    if (typeof document !== 'undefined') {
+      let meta = document.querySelector('meta[name="google-site-verification"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'google-site-verification');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', cleanToken);
+    }
+
+    return updated;
   }
 
   // --- PACIENTES ---

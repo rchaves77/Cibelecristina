@@ -7,7 +7,8 @@ import {
   ARTICLES, 
   FEATURED_HIGHLIGHTS,
   FAQ_ITEMS, 
-  ArticleData 
+  ArticleData,
+  BlogCategoryKey
 } from '../data/medicinarteData';
 
 interface ModalContent {
@@ -23,12 +24,27 @@ export function PublicLandingPage() {
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAllArticles, setShowAllArticles] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<BlogCategoryKey>('todas');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [formName, setFormName] = useState('');
   const [formService, setFormService] = useState('Consulta Médica');
   const [formSuccess, setFormSuccess] = useState(false);
   const [formError, setFormError] = useState('');
   const currentYear = new Date().getFullYear();
+
+  const categories: { key: BlogCategoryKey; label: string; count: number }[] = [
+    { key: 'todas', label: 'Todos os Artigos', count: ARTICLES.length },
+    { key: 'saude-adulto', label: 'Saúde do Adulto', count: ARTICLES.filter(a => a.categoryKey === 'saude-adulto').length },
+    { key: 'saude-mulher', label: 'Saúde da Mulher', count: ARTICLES.filter(a => a.categoryKey === 'saude-mulher').length },
+    { key: 'saude-crianca', label: 'Saúde da Criança', count: ARTICLES.filter(a => a.categoryKey === 'saude-crianca').length },
+    { key: 'saude-idoso', label: 'Saúde do Idoso', count: ARTICLES.filter(a => a.categoryKey === 'saude-idoso').length },
+    { key: 'prevencao', label: 'Prevenção', count: ARTICLES.filter(a => a.categoryKey === 'prevencao').length },
+    { key: 'ouvido', label: 'Ouvido', count: ARTICLES.filter(a => a.categoryKey === 'ouvido').length },
+  ];
+
+  const displayedArticles = selectedCategory === 'todas'
+    ? ARTICLES
+    : ARTICLES.filter(a => a.categoryKey === selectedCategory);
 
   // Listener para botão de voltar ao topo
   useEffect(() => {
@@ -110,18 +126,11 @@ export function PublicLandingPage() {
     setFormSuccess(true);
 
     // Mensagem com o nome e o serviço captados para enviar à Dra. Cibele
-    const message = `Olá Dra. Cibele! Gostaria de agendar um ${formService}. Meu nome completo é: ${trimmedName} e tenho interesse no serviço de: ${formService}.`;
+    const message = `Olá, Dra. Cibele! Meu nome é ${trimmedName} e gostaria de agendar o serviço de ${formService}. Poderia me informar os horários disponíveis?`;
     const url = `https://wa.me/${DOCTOR_INFO.whatsappNumber}?text=${encodeURIComponent(message)}`;
 
-    // Redirecionamento instantâneo dentro do evento de clique para prevenir bloqueio por popup blocker
-    try {
-      const win = window.open(url, '_blank', 'noopener,noreferrer');
-      if (!win || win.closed || typeof win.closed === 'undefined') {
-        window.location.href = url;
-      }
-    } catch {
-      window.location.href = url;
-    }
+    // Abertura única em nova aba sem disparar redirecionamento duplo
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -153,6 +162,9 @@ export function PublicLandingPage() {
           <nav className="header-nav" aria-label="Navegação Principal">
             <a href="#sobre" className="nav-link">Sobre</a>
             <a href="#servicos" className="nav-link">Serviços</a>
+            <Link to="/lavagem-de-ouvido-rio-branco" className="nav-link" style={{ color: 'var(--accent-gold-dark)', fontWeight: 600 }}>
+              Lavagem de Ouvido
+            </Link>
             <a href="#conteudos-saude" className="nav-link">Blog</a>
             <a href="#faq" className="nav-link">FAQ</a>
             <a href="#contato" className="nav-link">Contato</a>
@@ -161,7 +173,7 @@ export function PublicLandingPage() {
           {/* Botões de Ação Desktop */}
           <div className="header-desktop-actions">
             <Link
-              to="/sistema"
+              to="/login"
               className="btn-outline-gold"
               style={{ fontSize: '0.85rem', padding: '0.55rem 0.95rem' }}
               title="Acessar Sistema de Gestão Clínica"
@@ -306,6 +318,23 @@ export function PublicLandingPage() {
                 <span className="drawer-nav-arrow">&rarr;</span>
               </a>
 
+              <Link 
+                to="/lavagem-de-ouvido-rio-branco" 
+                className="drawer-nav-link"
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{ color: 'var(--accent-gold-dark)', fontWeight: 600 }}
+              >
+                <span className="drawer-nav-link-left">
+                  <svg className="drawer-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                  </svg>
+                  <span>Lavagem de Ouvido (Rio Branco)</span>
+                </span>
+                <span className="drawer-nav-arrow">&rarr;</span>
+              </Link>
+
               <a 
                 href="#conteudos-saude" 
                 className="drawer-nav-link"
@@ -358,7 +387,7 @@ export function PublicLandingPage() {
           <div className="drawer-actions">
             <div className="drawer-nav-section-title" style={{ paddingLeft: 0 }}>Atendimento Rápido</div>
             <Link
-              to="/sistema"
+              to="/login"
               className="btn-outline-gold"
               style={{ width: '100%', marginBottom: '0.6rem', textAlign: 'center', justifyContent: 'center' }}
               onClick={() => setIsMobileMenuOpen(false)}
@@ -570,7 +599,7 @@ export function PublicLandingPage() {
               btnLabel = 'Solicitar Visita Domiciliar';
             }
 
-            const waMsg = `Olá Dra. Cibele! Gostaria de agendar ${waAction}. Tenho interesse no serviço de: ${srv.title}. Poderia me informar a disponibilidade de horários?`;
+            const waMsg = `Olá, Dra. Cibele! Gostaria de agendar ${waAction}. Poderia me informar a disponibilidade de horários?`;
             const waUrl = `https://wa.me/${DOCTOR_INFO.whatsappNumber}?text=${encodeURIComponent(waMsg)}`;
 
             if (srv.isFeatured) {
@@ -590,6 +619,14 @@ export function PublicLandingPage() {
                     <p className="service-desc" style={{ color: '#2D3E38' }}>
                       {srv.desc}
                     </p>
+                    <div style={{ marginTop: '0.75rem', marginBottom: '0.5rem' }}>
+                      <Link 
+                        to="/lavagem-de-ouvido-rio-branco" 
+                        style={{ fontSize: '0.85rem', color: 'var(--accent-gold-dark)', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      >
+                        Página completa sobre Lavagem de Ouvido em Rio Branco &rarr;
+                      </Link>
+                    </div>
                   </div>
                   <a 
                     href={waUrl} 
@@ -821,28 +858,48 @@ export function PublicLandingPage() {
             </button>
             <span id="toggleArticlesNote" style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
               {showAllArticles 
-                ? 'Exibindo todos os 18 artigos do ecossistema médico. Clique para recolher.'
-                : 'Clique para abrir a grade completa com os outros 15 artigos (totalizando 18 do ecossistema)'}
+                ? 'Exibindo os 18 artigos organizados por categorias clínicas. Clique para recolher.'
+                : 'Clique para explorar a biblioteca completa com os 18 artigos categorizados (Adulto, Mulher, Criança, Idoso, Prevenção, Ouvido).'}
             </span>
           </div>
         </div>
       </section>
 
-      {/* SEÇÃO COM OS 15 ARTIGOS COMPLEMENTARES (OCULTA POR PADRÃO, ABRE NO MESMO LINK/PÁGINA) */}
+      {/* SEÇÃO COM OS 18 ARTIGOS COMPLEMENTARES CATEGORIZADOS (OCULTA POR PADRÃO, ABRE NO MESMO LINK/PÁGINA) */}
       <section 
         id="todos-artigos" 
         className={`section-wrap ${showAllArticles ? 'is-visible' : ''}`}
         style={{ display: showAllArticles ? 'block' : 'none' }}
       >
         <div className="section-head" style={{ marginTop: '1.5rem' }}>
-          <span className="section-kicker">Ecossistema Completo • 18 Artigos</span>
-          <h2 className="section-title">Biblioteca Clínica & Artigos Complementares</h2>
-          <p className="section-desc">Conversas acolhedoras, claras e resolutivas sobre Lavagem Otológica, audição, prevenção, cuidados na infância e terceira idade.</p>
+          <span className="section-kicker">Biblioteca Clínica Completa • 18 Artigos</span>
+          <h2 className="section-title">Artigos e Orientações Médicas</h2>
+          <p className="section-desc">Conteúdos organizados por fases da vida e áreas de cuidado: Saúde do Adulto, Mulher, Criança, Idoso, Prevenção Racional e Ouvido.</p>
+        </div>
+
+        {/* Barra de Filtros de Categorias */}
+        <div className="category-filter-bar" role="tablist" aria-label="Filtrar artigos por categoria">
+          {categories.map((cat) => {
+            const isActive = selectedCategory === cat.key;
+            return (
+              <button
+                key={cat.key}
+                type="button"
+                className={`cat-filter-btn ${isActive ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat.key)}
+                role="tab"
+                aria-selected={isActive}
+              >
+                <span>{cat.label}</span>
+                <span className="cat-count-badge">{cat.count}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="articles-grid">
-          {ARTICLES.map((artigo) => (
-            <article key={artigo.id} className="article-card">
+          {displayedArticles.map((artigo) => (
+            <article key={artigo.id} className="article-card" data-category={artigo.categoryKey}>
               <div 
                 className="article-media" 
                 onClick={() => setSelectedArticle(artigo)} 
@@ -855,6 +912,7 @@ export function PublicLandingPage() {
                   src={artigo.image} 
                   alt={artigo.alt} 
                   loading="lazy" 
+                  decoding="async"
                 />
                 <span className="article-badge-overlay">{artigo.badgeOverlay}</span>
               </div>
@@ -1063,7 +1121,7 @@ export function PublicLandingPage() {
 
                 {/* Conformidade LGPD/Privacidade */}
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4, marginTop: '0.85rem', textAlign: 'center' }}>
-                  Seus dados serão tratados com total confidencialidade e utilizados exclusivamente para agendamento médico, conforme a LGPD.
+                  Tratamento de dados em conformidade com a LGPD e sigilo ético profissional. Conheça nossa <Link to="/privacidade" style={{ color: 'var(--accent-gold-dark)', textDecoration: 'underline' }}>Política de Privacidade</Link>.
                 </p>
               </form>
 
@@ -1181,21 +1239,32 @@ export function PublicLandingPage() {
               </span>
             </div>
             <p>
-              <strong>{DOCTOR_INFO.name} — Médica, {DOCTOR_INFO.crm} | Especialista em {DOCTOR_INFO.specialty}, {DOCTOR_INFO.rqe}.</strong>
+              <strong>{DOCTOR_INFO.name} — Médica de Família e Comunidade</strong><br />
+              {DOCTOR_INFO.crm} | {DOCTOR_INFO.rqe}
             </p>
-            <p style={{ fontSize: '0.825rem', color: '#95ACA2' }}>
-              Compromisso ético com a saúde integral, respeito à autonomia do paciente e prática baseada nas melhores evidências científicas.
+            <p style={{ fontSize: '0.825rem', color: '#95ACA2', lineHeight: 1.5, marginTop: '0.4rem' }}>
+              <strong>MEDICINARTE SERVIÇOS MÉDICOS LTDA</strong><br />
+              Registro no CRM: CRM-AC PJ 258<br />
+              Diretora Técnica: Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
+            </p>
+            <p style={{ fontSize: '0.78rem', color: '#849E93', marginTop: '0.6rem' }}>
+              Tratamento ético e seguro de dados em conformidade com a LGPD e o Código de Ética Médica.
             </p>
           </div>
 
           <div className="footer-col">
-            <h5>Serviços</h5>
+            <h5>Serviços & Procedimentos</h5>
             <a href="#servicos">Consulta Médica</a>
-            <a href="#servicos">Check-up</a>
+            <a href="#servicos">Check-up Individualizado</a>
             <a href="#servicos">Doenças Crônicas</a>
-            <a href="#servicos">Lavagem Otológica</a>
-            <a href="#servicos">Teleconsulta</a>
-            <a href="#servicos">Visita Domiciliar</a>
+            <Link to="/lavagem-de-ouvido-rio-branco" style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>
+              Lavagem de Ouvido em Rio Branco ↗
+            </Link>
+            <a href="#servicos">Teleconsulta (Brasil)</a>
+            <a href="#servicos">Visita Domiciliar em Rio Branco</a>
+            <Link to="/privacidade" style={{ marginTop: '0.6rem', color: '#95ACA2', textDecoration: 'underline', fontSize: '0.85rem' }}>
+              Política de Privacidade (LGPD)
+            </Link>
           </div>
 
           <div className="footer-col">
@@ -1205,10 +1274,12 @@ export function PublicLandingPage() {
             <a href="#conteudos-saude">Conteúdos & Blog de Saúde</a>
             <a href="#faq">Perguntas Frequentes</a>
             <a href="#contato">Agendamento</a>
+            <Link to="/privacidade">Canal de Privacidade</Link>
+            <Link to="/login" style={{ color: '#95ACA2', fontSize: '0.85rem' }}>Sistema Clínico (Login Equipe)</Link>
           </div>
 
           <div className="footer-col">
-            <h5>Localização</h5>
+            <h5>Localização & Contato</h5>
             <p>
               <a 
                 href={DOCTOR_INFO.googleMapsUrl} 
@@ -1218,7 +1289,8 @@ export function PublicLandingPage() {
                 title="Abrir rota no Google Maps"
               >
                 Rua Antunes de Alencar, 152<br />
-                Bairro Bosque — Rio Branco/AC ↗
+                Bairro Bosque — Rio Branco/AC<br />
+                CEP: 69900-364 ↗
               </a>
             </p>
             <p>
@@ -1235,7 +1307,7 @@ export function PublicLandingPage() {
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; {currentYear} {DOCTOR_INFO.name}. Todos os direitos reservados. Informações em conformidade com as diretrizes do Conselho Federal de Medicina (CFM).</p>
+          <p>&copy; {currentYear} MEDICINARTE SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Informações em conformidade com as diretrizes do Conselho Federal de Medicina (CFM) e Lei Geral de Proteção de Dados (LGPD).</p>
         </div>
       </footer>
 

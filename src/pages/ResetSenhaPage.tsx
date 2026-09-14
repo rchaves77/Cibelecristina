@@ -1,0 +1,236 @@
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  CheckCircle2, 
+  ArrowRight, 
+  ArrowLeft, 
+  ShieldCheck, 
+  AlertCircle,
+  KeyRound,
+  Stethoscope
+} from 'lucide-react';
+import { clinicalDb } from '../services/clinicalDatabase';
+import { DOCTOR_INFO } from '../data/medicinarteData';
+
+export const ResetSenhaPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const token = searchParams.get('token') || '';
+  const emailParam = searchParams.get('email') || '';
+
+  const [novaSenha, setNovaSenha] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+  const [perfilNome, setPerfilNome] = useState('');
+
+  useEffect(() => {
+    document.title = "Redefinir Senha | Medicinarte - Dra. Cibele Cristina";
+    window.scrollTo(0, 0);
+
+    if (token) {
+      const perfis = clinicalDb.getPerfis();
+      const matched = perfis.find(p => p.reset_token === token);
+      if (matched) {
+        setPerfilNome(matched.nome);
+      }
+    }
+  }, [token]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novaSenha.trim()) {
+      setStatus('error');
+      setMessage('Digite a nova senha desejada.');
+      return;
+    }
+
+    setStatus('loading');
+
+    setTimeout(() => {
+      if (token) {
+        const res = clinicalDb.redefinirSenhaComToken(token, novaSenha.trim());
+        if (res.success) {
+          setStatus('success');
+          setMessage(res.message);
+          if (res.perfil) {
+            clinicalDb.setActiveUser(res.perfil);
+          }
+        } else {
+          setStatus('error');
+          setMessage(res.message);
+        }
+      } else if (emailParam) {
+        // Redefinição direta se veio por email
+        const perfis = clinicalDb.getPerfis();
+        const matched = perfis.find(p => p.email.toLowerCase() === emailParam.toLowerCase());
+        if (matched) {
+          clinicalDb.updateSenhaPerfil(matched.id, novaSenha.trim());
+          clinicalDb.setActiveUser(matched);
+          setStatus('success');
+          setMessage(`Senha de ${matched.nome} atualizada com sucesso!`);
+        } else {
+          setStatus('error');
+          setMessage('Perfil não encontrado para o e-mail informado.');
+        }
+      } else {
+        setStatus('error');
+        setMessage('Token de redefinição não informado.');
+      }
+    }, 400);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0E231E] text-stone-100 font-sans antialiased flex flex-col justify-between selection:bg-[#C5A059] selection:text-[#142E28]">
+      
+      {/* Luzes decorativas */}
+      <div className="fixed top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#1A3C34] rounded-full filter blur-[140px] opacity-40 pointer-events-none" />
+      <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-[#C5A059] rounded-full filter blur-[160px] opacity-15 pointer-events-none" />
+
+      {/* Header */}
+      <header className="relative z-20 bg-[#142E28]/90 backdrop-blur-md border-b border-[#234E43] px-4 sm:px-8 py-3.5">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#1A3C34] border border-[#C5A059] flex items-center justify-center font-serif font-bold text-sm text-[#C5A059]">
+              CC
+            </div>
+            <div>
+              <span className="font-serif font-bold text-base text-white block">
+                {DOCTOR_INFO.name}
+              </span>
+              <span className="text-[11px] text-[#C5A059] font-medium block">
+                Sistema Clínico Medicinarte
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#183931] border border-[#C5A059]/40 text-xs text-white hover:border-[#C5A059] transition-all"
+          >
+            <ArrowLeft size={14} className="text-[#C5A059]" />
+            <span>Ir para o Login</span>
+          </Link>
+        </div>
+      </header>
+
+      {/* Conteúdo Central */}
+      <main className="flex-1 max-w-md w-full mx-auto px-4 py-12 relative z-10 flex flex-col justify-center">
+        
+        <div className="bg-[#15342D] border border-[#235246] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+          
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#C5A059] to-[#9E7B36] text-[#0E231E] mb-3 shadow-lg">
+              <KeyRound size={26} />
+            </div>
+            <h1 className="font-serif font-bold text-2xl text-white">
+              Nova Senha de Acesso
+            </h1>
+            <p className="text-xs text-[#D4AF37] font-medium mt-1">
+              MEDICINARTE SERVIÇOS MÉDICOS LTDA
+            </p>
+            <p className="text-xs text-stone-400 mt-2">
+              {perfilNome 
+                ? `Redefinindo credenciais para o perfil: ${perfilNome}`
+                : emailParam
+                  ? `Redefinindo senha para: ${emailParam}`
+                  : 'Crie uma nova senha de acesso ao sistema clínico sem burocracia.'}
+            </p>
+          </div>
+
+          {status === 'success' ? (
+            <div className="p-5 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                <CheckCircle2 size={28} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Senha Atualizada!</h3>
+                <p className="text-xs text-emerald-200 mt-1">{message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/sistema')}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B38F48] text-[#0E231E] font-bold text-xs shadow-md transition-all"
+              >
+                <span>Acessar o Sistema Clínico Agora</span>
+                <ArrowRight size={15} />
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {status === 'error' && (
+                <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+                  <AlertCircle size={16} className="text-red-400 shrink-0" />
+                  <span>{message}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-semibold text-stone-300 block mb-1.5">
+                  Digite a Nova Senha (Sem exigências complexas)
+                </label>
+                <div className="relative">
+                  <Lock size={16} className="absolute left-3.5 top-3 text-[#C5A059]" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={novaSenha}
+                    onChange={(e) => setNovaSenha(e.target.value)}
+                    placeholder="Digite sua nova senha"
+                    className="w-full pl-10 pr-10 py-3 bg-[#0D211C] border border-[#27574B] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3 text-stone-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-stone-400 mt-1.5">
+                  Você pode usar qualquer senha que preferir. Fácil e sem bloqueios de símbolos.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={status === 'loading'}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] via-[#C5A059] to-[#B38F48] text-[#0E231E] font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all cursor-pointer disabled:opacity-75"
+              >
+                {status === 'loading' ? (
+                  <div className="w-5 h-5 border-2 border-[#0E231E] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Confirmar Nova Senha</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+
+            </form>
+          )}
+
+          <div className="pt-2 text-center border-t border-[#234E43]">
+            <Link to="/" className="text-xs text-stone-400 hover:text-[#C5A059] transition-colors">
+              &larr; Voltar ao site oficial da Dra. Cibele Cristina
+            </Link>
+          </div>
+
+        </div>
+
+      </main>
+
+      {/* Rodapé */}
+      <footer className="relative z-20 bg-[#0A1A16] border-t border-[#234E43] py-3.5 px-4 text-center text-xs text-stone-400">
+        MEDICINARTE SERVIÇOS MÉDICOS LTDA • Diretora Técnica: Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078
+      </footer>
+
+    </div>
+  );
+};

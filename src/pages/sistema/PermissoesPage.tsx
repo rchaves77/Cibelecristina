@@ -7,24 +7,141 @@ import {
   Save,
   CheckCircle2,
   Lock,
-  Plus
+  Eye,
+  EyeOff,
+  Mail,
+  Send,
+  Copy,
+  ExternalLink,
+  Search,
+  Globe,
+  FileCode,
+  KeyRound,
+  AlertCircle,
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { clinicalDb } from '../../services/clinicalDatabase';
-import { Perfil } from '../../types/clinical';
+import { Perfil, GoogleSearchConsoleConfig } from '../../types/clinical';
+import { DOCTOR_INFO } from '../../data/medicinarteData';
 
 export const PermissoesPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'perfis' | 'gsc'>('perfis');
   const [perfis, setPerfis] = useState<Perfil[]>([]);
   const [selectedPerfil, setSelectedPerfil] = useState<Perfil | null>(null);
-  const [feedback, setFeedback] = useState('');
 
+  // Estados de Senha
+  const [novaSenha, setNovaSenha] = useState('');
+  const [showNovaSenha, setShowNovaSenha] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+
+  // Estados de Disparo de E-mail de Reset
+  const [resetEmailFeedback, setResetEmailFeedback] = useState<{
+    perfil: Perfil;
+    link: string;
+    mensagemPreview: string;
+    disparadoEm: string;
+  } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Estados do Google Search Console
+  const [gscConfig, setGscConfig] = useState<GoogleSearchConsoleConfig>({
+    token: '',
+    sitemapUrl: '',
+    propriedadeUrl: '',
+    status: 'pendente'
+  });
+  const [gscTokenInput, setGscTokenInput] = useState('');
+  const [gscFeedback, setGscFeedback] = useState('');
+  const [copiedSitemap, setCopiedSitemap] = useState(false);
+  const [copiedMetaTag, setCopiedMetaTag] = useState(false);
+
+  // Grade Horária
+  const [gradeFeedback, setGradeFeedback] = useState('');
   const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
   useEffect(() => {
     const list = clinicalDb.getPerfis();
     setPerfis(list);
-    if (list.length > 0) setSelectedPerfil(list[0]);
+    if (list.length > 0) {
+      setSelectedPerfil(list[0]);
+    }
+
+    const gsc = clinicalDb.getGoogleSearchConsoleConfig();
+    setGscConfig(gsc);
+    setGscTokenInput(gsc.token);
   }, []);
 
+  // --- ALTERAÇÃO DIRETA DE SENHA (FÁCIL, SEM BUROCRACIA) ---
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPerfil) return;
+    if (!novaSenha.trim()) {
+      setPasswordFeedback({ type: 'error', msg: 'Informe a nova senha desejada.' });
+      return;
+    }
+
+    const updated = clinicalDb.updateSenhaPerfil(selectedPerfil.id, novaSenha.trim());
+    if (updated) {
+      const refreshed = clinicalDb.getPerfis();
+      setPerfis(refreshed);
+      setSelectedPerfil(updated);
+      setNovaSenha('');
+      setPasswordFeedback({
+        type: 'success',
+        msg: `Senha de ${updated.nome} alterada com sucesso! Sem validações complexas.`
+      });
+      setTimeout(() => setPasswordFeedback(null), 5000);
+    }
+  };
+
+  // --- ENVIO DE E-MAIL COM LINK DE RESET ---
+  const handleDispararEmailReset = () => {
+    if (!selectedPerfil) return;
+
+    const res = clinicalDb.gerarResetSenha(selectedPerfil.email);
+    if (res.success && res.perfil) {
+      setResetEmailFeedback({
+        perfil: res.perfil,
+        link: res.link,
+        mensagemPreview: res.mensagemPreview,
+        disparadoEm: new Date().toLocaleTimeString('pt-BR')
+      });
+      // Atualiza lista de perfis para pegar o token gravado
+      setPerfis(clinicalDb.getPerfis());
+    }
+  };
+
+  const handleCopyResetLink = () => {
+    if (!resetEmailFeedback) return;
+    navigator.clipboard.writeText(resetEmailFeedback.link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
+  };
+
+  // --- CONFIGURAÇÃO GOOGLE SEARCH CONSOLE ---
+  const handleSaveGSC = (e: React.FormEvent) => {
+    e.preventDefault();
+    const saved = clinicalDb.saveGoogleSearchConsoleConfig(gscTokenInput);
+    setGscConfig(saved);
+    setGscFeedback('Configuração do Google Search Console atualizada com sucesso no site!');
+    setTimeout(() => setGscFeedback(''), 4000);
+  };
+
+  const handleCopyMetaTag = () => {
+    const metaString = `<meta name="google-site-verification" content="${gscConfig.token}" />`;
+    navigator.clipboard.writeText(metaString);
+    setCopiedMetaTag(true);
+    setTimeout(() => setCopiedMetaTag(false), 3000);
+  };
+
+  const handleCopySitemap = () => {
+    navigator.clipboard.writeText(gscConfig.sitemapUrl);
+    setCopiedSitemap(true);
+    setTimeout(() => setCopiedSitemap(false), 3000);
+  };
+
+  // --- GRADE HORÁRIA ---
   const handleToggleDia = (dia: string) => {
     if (!selectedPerfil) return;
     const current = selectedPerfil.dias_atendimento || [];
@@ -34,157 +151,634 @@ export const PermissoesPage: React.FC = () => {
     setSelectedPerfil({ ...selectedPerfil, dias_atendimento: updated });
   };
 
-  const handleSaveConfig = (e: React.FormEvent) => {
+  const handleSaveGrade = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPerfil) return;
 
     clinicalDb.savePerfil(selectedPerfil);
     setPerfis(clinicalDb.getPerfis());
-    setFeedback(`Configurações de grade horária salvas para ${selectedPerfil.nome}!`);
-    setTimeout(() => setFeedback(''), 4000);
+    setGradeFeedback(`Grade horária salva com sucesso para ${selectedPerfil.nome}!`);
+    setTimeout(() => setGradeFeedback(''), 4000);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* CABEÇALHO */}
-      <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#1A3C34]/10 text-[#1A3C34]">
-            Controle de Acesso & Grade Horária
-          </span>
-          <span className="text-xs text-stone-400">•</span>
-          <span className="text-xs text-stone-500">Regras de agendamento e papéis de usuário</span>
+      <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#1A3C34]/10 text-[#1A3C34]">
+              Administração do Sistema & SEO
+            </span>
+            <span className="text-xs text-stone-400">•</span>
+            <span className="text-xs text-stone-500">Gestão de Perfis, Senhas e Indexação Google</span>
+          </div>
+          <h2 className="font-serif font-bold text-xl text-stone-900 mt-1">
+            Gestão de Usuários, Senhas & Google Search Console
+          </h2>
         </div>
-        <h2 className="font-serif font-bold text-xl text-stone-900 mt-1">
-          Usuários, Permissões & Grade de Atendimento
-        </h2>
+
+        {/* ABAS */}
+        <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('perfis')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'perfis'
+                ? 'bg-white text-[#1A3C34] shadow-sm'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <ShieldCheck size={15} />
+            <span>Perfis, Senhas & Grade</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('gsc')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'gsc'
+                ? 'bg-white text-[#1A3C34] shadow-sm'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Globe size={15} className="text-[#C5A059]" />
+            <span>Google Search Console</span>
+          </button>
+        </div>
       </div>
 
-      {feedback && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-          <span>{feedback}</span>
+      {/* ABA 1: PERFIS, SENHAS & PERMISSÕES */}
+      {activeTab === 'perfis' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* COLUNA ESQUERDA: LISTA DE PERFIS */}
+          <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-sm p-4 space-y-3 h-fit">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+              <h3 className="font-serif font-bold text-sm text-stone-800">
+                Colaboradores Cadastrados
+              </h3>
+              <span className="text-[11px] font-semibold text-[#1A3C34] bg-[#1A3C34]/10 px-2 py-0.5 rounded-full">
+                {perfis.length} perfis
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {perfis.map((p) => {
+                const isSelected = selectedPerfil?.id === p.id;
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      setSelectedPerfil(p);
+                      setNovaSenha('');
+                      setPasswordFeedback(null);
+                      setResetEmailFeedback(null);
+                    }}
+                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-[#1A3C34] bg-[#1A3C34]/5 shadow-sm font-semibold'
+                        : 'border-stone-200 hover:bg-stone-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: p.cor || '#1A3C34' }}
+                        />
+                        <span className="text-xs text-stone-900 font-medium">{p.nome}</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-[#C5A059]/20 text-[#8F7030]">
+                        {p.role}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] text-stone-500 mt-1 flex items-center justify-between">
+                      <span className="truncate">{p.email}</span>
+                      {p.senha && (
+                        <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0">
+                          Senha ativa
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-3 bg-stone-50 border border-stone-200/80 rounded-xl text-[11px] text-stone-600 leading-relaxed">
+              💡 <strong>Dica de Segurança:</strong> Selecione o perfil para alterar a senha diretamente ou para enviar um link de redefinição por e-mail.
+            </div>
+          </div>
+
+          {/* COLUNA DIREITA: GERENCIADOR DE SENHAS & GRADE */}
+          <div className="lg:col-span-8 space-y-6">
+            {selectedPerfil ? (
+              <>
+                {/* CABEÇALHO DO PERFIL SELECIONADO */}
+                <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-sm"
+                      style={{ backgroundColor: selectedPerfil.cor || '#1A3C34' }}
+                    >
+                      {selectedPerfil.nome.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-serif font-bold text-base text-stone-900">
+                        {selectedPerfil.nome}
+                      </h3>
+                      <p className="text-xs text-stone-500 flex items-center gap-1.5">
+                        <span>{selectedPerfil.email}</span>
+                        <span>•</span>
+                        <span className="uppercase font-semibold text-[#8F7030]">
+                          {selectedPerfil.role}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800">
+                      <CheckCircle2 size={13} className="text-emerald-600" />
+                      <span>Acesso Habilitado</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* MÓDULO 1: ALTERAÇÃO DIRETA DE SENHA (FÁCIL E RÁPIDA) */}
+                <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+                  <div className="flex items-start justify-between border-b border-stone-100 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <KeyRound size={18} className="text-[#C5A059]" />
+                        <h4 className="font-serif font-bold text-sm text-stone-900">
+                          Alterar Senha do Perfil Facilmente
+                        </h4>
+                      </div>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Defina uma nova senha diretamente sem precisar de validações burocráticas ou regras complexas de símbolos.
+                      </p>
+                    </div>
+                  </div>
+
+                  {passwordFeedback && (
+                    <div
+                      className={`p-3 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in ${
+                        passwordFeedback.type === 'success'
+                          ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                          : 'bg-red-50 border border-red-200 text-red-800'
+                      }`}
+                    >
+                      {passwordFeedback.type === 'success' ? (
+                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      ) : (
+                        <AlertCircle size={16} className="text-red-600 shrink-0" />
+                      )}
+                      <span>{passwordFeedback.msg}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleUpdatePassword} className="space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold text-stone-700 block mb-1">
+                        Nova Senha de Acesso para {selectedPerfil.nome}
+                      </label>
+                      <div className="relative max-w-md">
+                        <Lock size={15} className="absolute left-3 top-3 text-stone-400" />
+                        <input
+                          type={showNovaSenha ? 'text' : 'password'}
+                          value={novaSenha}
+                          onChange={(e) => setNovaSenha(e.target.value)}
+                          placeholder="Digite a nova senha (ex: medicinarte2026)"
+                          className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNovaSenha(!showNovaSenha)}
+                          className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600"
+                        >
+                          {showNovaSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold shadow-sm transition-all"
+                      >
+                        <Save size={14} />
+                        <span>Salvar Nova Senha</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sugestao = 'Med' + Math.floor(1000 + Math.random() * 9000);
+                          setNovaSenha(sugestao);
+                          setShowNovaSenha(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 text-xs font-medium transition-all"
+                      >
+                        <Sparkles size={14} className="text-[#C5A059]" />
+                        <span>Gerar Sugestão Rápida</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* MÓDULO 2: DISPARO DE E-MAIL COM LINK DE RESET */}
+                <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+                  <div className="flex items-start justify-between border-b border-stone-100 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Mail size={18} className="text-[#1A3C34]" />
+                        <h4 className="font-serif font-bold text-sm text-stone-900">
+                          Mandar Mensagem para Resetar Senha no E-mail
+                        </h4>
+                      </div>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Dispare um e-mail oficial de redefinição para o endereço cadastrado do colaborador ({selectedPerfil.email}).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
+                    <div>
+                      <div className="text-xs font-semibold text-stone-800">
+                        Destinatário: <span className="font-mono text-[#1A3C34]">{selectedPerfil.email}</span>
+                      </div>
+                      <div className="text-[11px] text-stone-500 mt-0.5">
+                        Um link seguro e individual com validade de 24 horas será gerado.
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleDispararEmailReset}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#C5A059] to-[#9E7B36] hover:brightness-105 text-[#0E231E] text-xs font-bold shadow-sm transition-all shrink-0"
+                    >
+                      <Send size={14} />
+                      <span>Disparar E-mail de Redefinição</span>
+                    </button>
+                  </div>
+
+                  {/* PREVIEW DA MENSAGEM DISPARADA */}
+                  {resetEmailFeedback && (
+                    <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-300/80 space-y-3 animate-in fade-in">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
+                          <CheckCircle2 size={16} className="text-emerald-600" />
+                          <span>E-mail de Reset Gerado às {resetEmailFeedback.disparadoEm}!</span>
+                        </div>
+                        <span className="text-[11px] text-emerald-700 font-medium">
+                          Enviado para {resetEmailFeedback.perfil.email}
+                        </span>
+                      </div>
+
+                      {/* Box com o Link e botão de copiar */}
+                      <div className="bg-white p-3 rounded-lg border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="text-xs font-mono text-stone-700 truncate">
+                          {resetEmailFeedback.link}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={handleCopyResetLink}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1A3C34] text-white text-xs font-semibold hover:bg-[#142E28] transition-all"
+                          >
+                            <Copy size={13} />
+                            <span>{copiedLink ? 'Copiado!' : 'Copiar Link'}</span>
+                          </button>
+
+                          <a
+                            href={resetEmailFeedback.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 text-xs font-semibold hover:bg-stone-50 transition-all"
+                          >
+                            <ExternalLink size={13} />
+                            <span>Abrir Página</span>
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Pré-visualização da Mensagem */}
+                      <details className="text-xs text-stone-600 bg-white/60 p-2.5 rounded-lg border border-emerald-200/60">
+                        <summary className="cursor-pointer font-semibold text-emerald-900">
+                          Ver Conteúdo Formatado da Mensagem Enviada
+                        </summary>
+                        <pre className="mt-2 whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-stone-700 bg-stone-50 p-2.5 rounded border border-stone-200">
+                          {resetEmailFeedback.mensagemPreview}
+                        </pre>
+                      </details>
+                    </div>
+                  )}
+                </div>
+
+                {/* MÓDULO 3: GRADE HORÁRIA DE ATENDIMENTO */}
+                <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Clock size={18} className="text-[#1A3C34]" />
+                        <h4 className="font-serif font-bold text-sm text-stone-900">
+                          Grade Horária & Dias de Atendimento
+                        </h4>
+                      </div>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Define os horários permitidos de agendamento na agenda do consultório.
+                      </p>
+                    </div>
+                  </div>
+
+                  {gradeFeedback && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in">
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      <span>{gradeFeedback}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSaveGrade} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-stone-700 block mb-1">
+                          Horário de Início
+                        </label>
+                        <input
+                          type="time"
+                          value={selectedPerfil.hora_inicio || '08:00'}
+                          onChange={(e) => setSelectedPerfil({ ...selectedPerfil, hora_inicio: e.target.value })}
+                          className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-stone-700 block mb-1">
+                          Horário de Término
+                        </label>
+                        <input
+                          type="time"
+                          value={selectedPerfil.hora_fim || '18:00'}
+                          onChange={(e) => setSelectedPerfil({ ...selectedPerfil, hora_fim: e.target.value })}
+                          className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-stone-700 block mb-2">
+                        Dias da Semana Liberados para Agendamento
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {diasSemana.map((dia) => {
+                          const active = selectedPerfil.dias_atendimento?.includes(dia);
+                          return (
+                            <button
+                              key={dia}
+                              type="button"
+                              onClick={() => handleToggleDia(dia)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                                active
+                                  ? 'bg-[#1A3C34] text-white shadow-xs'
+                                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                              }`}
+                            >
+                              {dia} {active ? '✓' : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-stone-100 flex justify-end">
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold shadow-sm transition-all"
+                      >
+                        <Save size={14} />
+                        <span>Salvar Grade Horária</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-stone-400 p-8 bg-white rounded-2xl border border-stone-200">
+                Selecione um colaborador à esquerda para gerenciar credenciais e grade horária.
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LISTA DE PERFIS */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-sm p-4 space-y-3">
-          <h3 className="font-serif font-bold text-sm text-stone-800 border-b border-stone-100 pb-2">
-            Colaboradores Cadastrados
-          </h3>
+      {/* ABA 2: GOOGLE SEARCH CONSOLE & SEO LOCAL */}
+      {activeTab === 'gsc' && (
+        <div className="space-y-6">
+          
+          {/* BANNER PRINCIPAL GSC */}
+          <div className="bg-gradient-to-r from-[#142E28] to-[#1A3C34] text-white p-6 rounded-3xl border border-[#27574B] shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C5A059]/20 border border-[#C5A059]/40 text-[#C5A059] text-xs font-semibold">
+                <Globe size={14} />
+                <span>Google Search Console Oficial</span>
+              </div>
+              <h3 className="font-serif font-bold text-xl text-white">
+                Indexação & Ranqueamento de Rio Branco - AC
+              </h3>
+              <p className="text-xs text-stone-300 leading-relaxed">
+                Configure a tag de verificação do Google e envie o sitemap XML para que o consultório da 
+                Dra. Cibele Cristina seja encontrado no topo do Google para buscas como "Médica de Família em Rio Branco" 
+                e "Lavagem de Ouvido em Rio Branco - AC".
+              </p>
+            </div>
 
-          <div className="space-y-2">
-            {perfis.map((p) => {
-              const isSelected = selectedPerfil?.id === p.id;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => setSelectedPerfil(p)}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                    isSelected
-                      ? 'border-[#1A3C34] bg-[#1A3C34]/5 shadow-xs font-semibold'
-                      : 'border-stone-200 hover:bg-stone-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-stone-900">{p.nome}</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-[#C5A059]/20 text-[#8F7030]">
-                      {p.role}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-stone-500 mt-1">
-                    {p.email}
-                  </div>
-                </div>
-              );
-            })}
+            <div className="shrink-0 flex flex-col gap-2">
+              <a
+                href="https://search.google.com/search-console"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#C5A059] hover:bg-[#D4AF37] text-[#0E231E] font-bold text-xs shadow-md transition-all"
+              >
+                <span>Abrir Google Search Console</span>
+                <ExternalLink size={15} />
+              </a>
+
+              <div className="text-center text-[11px] text-stone-400">
+                Acesse com sua conta Google
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* EDITOR DE GRADE HORÁRIA E PERMISSÕES DO PERFIL SELECIONADO */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
-          {selectedPerfil ? (
-            <form onSubmit={handleSaveConfig} className="space-y-4">
-              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-                <div>
-                  <h3 className="font-serif font-bold text-base text-stone-900">
-                    Configuração da Grade de {selectedPerfil.nome}
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    O sistema bloqueará automaticamente agendamentos fora deste horário ou em dias não selecionados.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-stone-700 block mb-1">
-                    Horário de Início dos Atendimentos
-                  </label>
-                  <input
-                    type="time"
-                    value={selectedPerfil.hora_inicio || '08:00'}
-                    onChange={(e) => setSelectedPerfil({ ...selectedPerfil, hora_inicio: e.target.value })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-stone-700 block mb-1">
-                    Horário de Término dos Atendimentos
-                  </label>
-                  <input
-                    type="time"
-                    value={selectedPerfil.hora_fim || '18:00'}
-                    onChange={(e) => setSelectedPerfil({ ...selectedPerfil, hora_fim: e.target.value })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-stone-700 block mb-2">
-                  Dias de Atendimento Permitidos
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {diasSemana.map((dia) => {
-                    const active = selectedPerfil.dias_atendimento?.includes(dia);
-                    return (
-                      <button
-                        key={dia}
-                        type="button"
-                        onClick={() => handleToggleDia(dia)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                          active
-                            ? 'bg-[#1A3C34] text-white shadow-xs'
-                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                        }`}
-                      >
-                        {dia} {active ? '✓' : ''}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-stone-100 flex justify-end">
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold shadow-sm transition-all"
-                >
-                  <Save size={15} />
-                  <span>Salvar Grade & Permissões</span>
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="text-center text-stone-400 p-8">
-              Selecione um usuário para editar a grade horária.
+          {gscFeedback && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              <span>{gscFeedback}</span>
             </div>
           )}
+
+          {/* PAINEL DE CONFIGURAÇÃO DO TOKEN */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* CARD: TOKEN DA META TAG DE VERIFICAÇÃO */}
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <FileCode size={18} className="text-[#C5A059]" />
+                  <h4 className="font-serif font-bold text-sm text-stone-900">
+                    1. Meta Tag de Verificação HTML
+                  </h4>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                  {gscConfig.status === 'configurado' ? 'Ativo no Site' : 'Pendente'}
+                </span>
+              </div>
+
+              <p className="text-xs text-stone-600">
+                O Google Search Console fornece um código de verificação para o método <strong>Tag HTML</strong>. 
+                Cole o token abaixo para injetar automaticamente no cabeçalho do site.
+              </p>
+
+              <form onSubmit={handleSaveGSC} className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-stone-700 block mb-1">
+                    Código de Verificação Google Search Console
+                  </label>
+                  <input
+                    type="text"
+                    value={gscTokenInput}
+                    onChange={(e) => setGscTokenInput(e.target.value)}
+                    placeholder="Ex: google-site-verification=abc123xyz... ou o token"
+                    className="w-full text-xs font-mono p-3 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34]"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold shadow-sm transition-all"
+                  >
+                    <Save size={14} />
+                    <span>Salvar e Atualizar no Site</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyMetaTag}
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-semibold transition-all"
+                  >
+                    <Copy size={14} />
+                    <span>{copiedMetaTag ? 'Tag Copiada!' : 'Copiar Tag HTML'}</span>
+                  </button>
+                </div>
+              </form>
+
+              <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 font-mono text-[11px] text-stone-600 break-all">
+                &lt;meta name="google-site-verification" content="{gscConfig.token}" /&gt;
+              </div>
+            </div>
+
+            {/* CARD: SITEMAP XML & ARQUIVO DE VERIFICAÇÃO */}
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Globe size={18} className="text-[#1A3C34]" />
+                  <h4 className="font-serif font-bold text-sm text-stone-900">
+                    2. Envio do Sitemap XML & Robots.txt
+                  </h4>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#1A3C34]/10 text-[#1A3C34]">
+                  Indexação Ativa
+                </span>
+              </div>
+
+              <p className="text-xs text-stone-600">
+                O arquivo de mapa do site instrui os robôs do Google sobre todas as páginas de alta relevância clínica e procedimentos.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-stone-700 block mb-1">
+                    URL Oficial do Sitemap XML
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={gscConfig.sitemapUrl || 'https://dracibelecristina.med.br/sitemap.xml'}
+                      className="w-full text-xs font-mono p-2.5 rounded-xl bg-stone-50 border border-stone-300 text-stone-700 select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopySitemap}
+                      className="inline-flex items-center gap-1 px-3 py-2.5 rounded-xl bg-[#1A3C34] text-white text-xs font-semibold hover:bg-[#142E28] transition-all shrink-0"
+                    >
+                      <Copy size={13} />
+                      <span>{copiedSitemap ? 'Copiado!' : 'Copiar'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-50/60 border border-amber-200/80 rounded-xl space-y-1 text-xs text-amber-900">
+                  <div className="font-semibold flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-amber-600" />
+                    <span>Como submeter no Google Search Console:</span>
+                  </div>
+                  <ol className="list-decimal list-inside text-[11px] text-amber-800 space-y-1 mt-1">
+                    <li>No menu esquerdo do GSC, clique em <strong>"Sitemaps"</strong>.</li>
+                    <li>No campo <em>"Adicionar novo sitemap"</em>, digite apenas: <strong>sitemap.xml</strong></li>
+                    <li>Clique em <strong>"Enviar"</strong>. O status mudará para "Sucesso".</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* CARD EXPLICATIVO: CHECKLIST DE VALIDAÇÃO GSC */}
+          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+            <h4 className="font-serif font-bold text-sm text-stone-900">
+              Checklist de SEO Local para Rio Branco - AC
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-[#1A3C34]/10 text-[#1A3C34] flex items-center justify-center font-bold text-xs">
+                  01
+                </div>
+                <h5 className="font-semibold text-xs text-stone-900">Páginas Indexadas</h5>
+                <p className="text-[11px] text-stone-500 leading-relaxed">
+                  A home page e a página especializada em <strong>Lavagem de Ouvido em Rio Branco</strong> já estão estruturadas com meta tags e dados do Schema.org.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-[#C5A059]/20 text-[#8F7030] flex items-center justify-center font-bold text-xs">
+                  02
+                </div>
+                <h5 className="font-semibold text-xs text-stone-900">Diretrizes do CFM</h5>
+                <p className="text-[11px] text-stone-500 leading-relaxed">
+                  Conformidade com a Resolução CFM nº 2.314/2022 e 2.336/2023, exibindo CRM-AC 1810 e RQE 1078 em todas as meta tags.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+                  03
+                </div>
+                <h5 className="font-semibold text-xs text-stone-900">Robots.txt Seguro</h5>
+                <p className="text-[11px] text-stone-500 leading-relaxed">
+                  O painel interno (<code>/sistema/</code>) e o login (<code>/login</code>) estão bloqueados para robôs, garantindo privacidade e LGPD para os pacientes.
+                </p>
+              </div>
+            </div>
+          </div>
+
         </div>
-      </div>
+      )}
+
     </div>
   );
 };

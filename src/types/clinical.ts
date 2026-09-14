@@ -15,6 +15,19 @@ export interface Perfil {
   escola_id?: string | null;
   crm?: string;
   rqe?: string;
+  senha?: string;
+  senha_alterada_em?: string;
+  reset_token?: string;
+  reset_token_expira?: string;
+}
+
+export interface GoogleSearchConsoleConfig {
+  token: string;
+  htmlFileName?: string;
+  sitemapUrl: string;
+  status: 'configurado' | 'pendente';
+  ultimaAtualizacao?: string;
+  propriedadeUrl: string;
 }
 
 export interface Paciente {

@@ -1,7 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { PublicLandingPage } from './pages/PublicLandingPage';
+import { LavagemOuvidoPage } from './pages/LavagemOuvidoPage';
+import { PrivacidadePage } from './pages/PrivacidadePage';
 import { LoginPage } from './pages/LoginPage';
+import { ResetSenhaPage } from './pages/ResetSenhaPage';
 import { ValidarAtestadoPage } from './pages/ValidarAtestadoPage';
 import { SistemaLayout } from './components/sistema/SistemaLayout';
 import { AgendaDashboard } from './pages/sistema/AgendaDashboard';
@@ -20,8 +23,17 @@ export default function App() {
         {/* Site Oficial Público da Dra. Cibele Cristina */}
         <Route path="/" element={<PublicLandingPage />} />
 
+        {/* Landing Page de Conversão Local: Lavagem de Ouvido em Rio Branco - AC */}
+        <Route path="/lavagem-de-ouvido-rio-branco" element={<LavagemOuvidoPage />} />
+        <Route path="/lavagem-de-ouvido-rio-branco.html" element={<LavagemOuvidoPage />} />
+
+        {/* Conformidade Legal e Ética: Política de Privacidade (LGPD) */}
+        <Route path="/privacidade" element={<PrivacidadePage />} />
+        <Route path="/privacidade.html" element={<PrivacidadePage />} />
+
         {/* Autenticação */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-senha" element={<ResetSenhaPage />} />
 
         {/* Validação Pública de Atestados e Laudos via QR Code */}
         <Route path="/validar/:id" element={<ValidarAtestadoPage />} />

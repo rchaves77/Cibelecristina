@@ -1,6 +1,6 @@
 {
-  "name": "MEDICINARTE — Dra. Cibele Cristina | Medicina de Família e Comunidade",
-  "description": "Atendimento médico próximo, individualizado e baseado em evidências com a Dra. Cibele Cristina. Especialista em Medicina de Família e Comunidade, CRM-AC 1810 | RQE 1078.",
+  "name": "Dra. Cibele Cristina | Medicina de Família e Comunidade",
+  "description": "Dra. Cibele Cristina, médica especialista em Medicina de Família e Comunidade em Rio Branco-AC. Consultas para adultos e crianças, check-up, lavagem otológica, teleconsulta e visita domiciliar. CRM-AC 1810 | RQE 1078.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

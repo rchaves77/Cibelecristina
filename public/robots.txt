@@ -1,0 +1,7 @@
+# robots.txt para Dra. Cibele Cristina - Médica de Família em Rio Branco - AC
+User-agent: *
+Allow: /
+Disallow: /sistema/
+Disallow: /login
+
+Sitemap: https://dracibelecristina.med.br/sitemap.xml
