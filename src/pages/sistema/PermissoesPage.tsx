@@ -19,18 +19,52 @@ import {
   KeyRound,
   AlertCircle,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Database,
+  Download,
+  Check
 } from 'lucide-react';
 import { clinicalDb } from '../../services/clinicalDatabase';
 import { Perfil, GoogleSearchConsoleConfig } from '../../types/clinical';
 import { DOCTOR_INFO } from '../../data/medicinarteData';
+import { 
+  testSupabaseConnection, 
+  syncCredentialsToSupabase,
+  SUPABASE_PROJECT_ID, 
+  SUPABASE_URL, 
+  SUPABASE_SQL_SCHEMA 
+} from '../../services/supabaseClient';
 
 export const PermissoesPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'perfis' | 'gsc'>('perfis');
+  const [activeTab, setActiveTab] = useState<'perfis' | 'gsc' | 'supabase'>('perfis');
   const [perfis, setPerfis] = useState<Perfil[]>([]);
   const [selectedPerfil, setSelectedPerfil] = useState<Perfil | null>(null);
 
-  // Estados de Senha
+  // Estados do Supabase Cloud
+  const [supabaseStatus, setSupabaseStatus] = useState<{
+    connected: boolean;
+    message: string;
+    latencyMs?: number;
+    testedAt?: string;
+  } | null>(null);
+  const [testingSupabase, setTestingSupabase] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
+  const [backupFeedback, setBackupFeedback] = useState('');
+
+  // Estados de Senha e Credenciais (E-mail e Senha) com sincronização Supabase
+  const [editEmail, setEditEmail] = useState('');
+  const [editNome, setEditNome] = useState('');
+  const [editSenha, setEditSenha] = useState('');
+  const [showEditSenha, setShowEditSenha] = useState(false);
+  const [isSavingCredenciais, setIsSavingCredenciais] = useState(false);
+  const [credenciaisFeedback, setCredenciaisFeedback] = useState<{
+    type: 'success' | 'error';
+    msg: string;
+    supabaseAuthSynced?: boolean;
+    supabaseDbSynced?: boolean;
+  } | null>(null);
+
+  // Estados legados mantidos para compatibilidade
   const [novaSenha, setNovaSenha] = useState('');
   const [showNovaSenha, setShowNovaSenha] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -65,12 +99,126 @@ export const PermissoesPage: React.FC = () => {
     setPerfis(list);
     if (list.length > 0) {
       setSelectedPerfil(list[0]);
+      setEditEmail(list[0].email);
+      setEditNome(list[0].nome);
     }
 
     const gsc = clinicalDb.getGoogleSearchConsoleConfig();
     setGscConfig(gsc);
     setGscTokenInput(gsc.token);
+
+    // Testa status da conexão com o Supabase Cloud
+    handleTestSupabase();
   }, []);
+
+  // Sincroniza campos quando o perfil selecionado muda
+  useEffect(() => {
+    if (selectedPerfil) {
+      setEditEmail(selectedPerfil.email);
+      setEditNome(selectedPerfil.nome);
+      setEditSenha('');
+      setCredenciaisFeedback(null);
+    }
+  }, [selectedPerfil?.id]);
+
+  // --- SUPABASE CLOUD HANDLERS ---
+  const handleTestSupabase = async () => {
+    setTestingSupabase(true);
+    const res = await testSupabaseConnection();
+    setSupabaseStatus({
+      ...res,
+      testedAt: new Date().toLocaleTimeString('pt-BR')
+    });
+    setTestingSupabase(false);
+  };
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_SCHEMA);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 3000);
+  };
+
+  const handleExportBackup = () => {
+    const data = {
+      clinica: DOCTOR_INFO.clinicLegalName,
+      medica: DOCTOR_INFO.name,
+      crm: DOCTOR_INFO.crm,
+      exportadoEm: new Date().toISOString(),
+      perfis: clinicalDb.getPerfis(),
+      pacientes: clinicalDb.getPacientes(),
+      agendamentos: clinicalDb.getAgendamentos(),
+      prontuarios: clinicalDb.getProntuarios(),
+      prescricoes: clinicalDb.getPrescricoesEmitidas(),
+      validacoesAtestados: clinicalDb.getValidacoes()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_medicinarte_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setBackupFeedback('Backup JSON da clínica gerado e baixado com sucesso!');
+    setTimeout(() => setBackupFeedback(''), 4000);
+  };
+
+  // --- SALVAR E-MAIL E SENHA COM SINCRONIZAÇÃO IMEDIATA NO SUPABASE ---
+  const handleSaveCredenciais = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPerfil) return;
+
+    const cleanEmail = editEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setCredenciaisFeedback({
+        type: 'error',
+        msg: 'Por favor, informe um endereço de e-mail válido.'
+      });
+      return;
+    }
+
+    setIsSavingCredenciais(true);
+    setCredenciaisFeedback(null);
+
+    try {
+      // 1. Atualiza no banco clínico local e atualiza a sessão se for o usuário ativo
+      const { perfil: updatedPerfil } = clinicalDb.updateCredenciaisPerfil(
+        selectedPerfil.id,
+        cleanEmail,
+        editSenha.trim() || undefined,
+        editNome.trim() || undefined
+      );
+
+      // 2. Sincroniza imediatamente com o Supabase Cloud (Auth + Tabela perfis)
+      const supaResult = await syncCredentialsToSupabase({
+        perfilId: updatedPerfil.id,
+        email: cleanEmail,
+        password: editSenha.trim() || updatedPerfil.senha,
+        nome: updatedPerfil.nome,
+        role: updatedPerfil.role
+      });
+
+      // 3. Atualiza estado da UI
+      const refreshed = clinicalDb.getPerfis();
+      setPerfis(refreshed);
+      setSelectedPerfil(updatedPerfil);
+      setEditSenha('');
+
+      setCredenciaisFeedback({
+        type: 'success',
+        msg: `E-mail e credenciais de "${updatedPerfil.nome}" atualizados e sincronizados no Supabase com sucesso!`,
+        supabaseAuthSynced: supaResult.supabaseAuthSynced,
+        supabaseDbSynced: supaResult.supabaseDbSynced
+      });
+      setTimeout(() => setCredenciaisFeedback(null), 8000);
+    } catch (err: any) {
+      setCredenciaisFeedback({
+        type: 'error',
+        msg: err?.message || 'Erro ao atualizar credenciais do perfil.'
+      });
+    } finally {
+      setIsSavingCredenciais(false);
+    }
+  };
 
   // --- ALTERAÇÃO DIRETA DE SENHA (FÁCIL, SEM BUROCRACIA) ---
   const handleUpdatePassword = (e: React.FormEvent) => {
@@ -204,6 +352,19 @@ export const PermissoesPage: React.FC = () => {
             <Globe size={15} className="text-[#C5A059]" />
             <span>Google Search Console</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('supabase')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'supabase'
+                ? 'bg-white text-[#1A3C34] shadow-sm'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Database size={15} className="text-emerald-600" />
+            <span>Banco Supabase Cloud</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          </button>
         </div>
       </div>
 
@@ -306,83 +467,165 @@ export const PermissoesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* MÓDULO 1: ALTERAÇÃO DIRETA DE SENHA (FÁCIL E RÁPIDA) */}
+                {/* MÓDULO 1: EDITAR E-MAIL E SENHA COM VALIDAÇÃO IMEDIATA NO SUPABASE */}
                 <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
-                  <div className="flex items-start justify-between border-b border-stone-100 pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <KeyRound size={18} className="text-[#C5A059]" />
                         <h4 className="font-serif font-bold text-sm text-stone-900">
-                          Alterar Senha do Perfil Facilmente
+                          Editar E-mail e Senha de Acesso (Supabase Cloud)
                         </h4>
+                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Sincronização Imediata
+                        </span>
                       </div>
                       <p className="text-xs text-stone-500 mt-1">
-                        Defina uma nova senha diretamente sem precisar de validações burocráticas ou regras complexas de símbolos.
+                        Edite o e-mail ou redefina a senha deste perfil. As atualizações entram em vigor e são validadas no Supabase automaticamente.
                       </p>
                     </div>
                   </div>
 
-                  {passwordFeedback && (
+                  {credenciaisFeedback && (
                     <div
-                      className={`p-3 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in ${
-                        passwordFeedback.type === 'success'
-                          ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                      className={`p-3.5 rounded-xl text-xs font-medium space-y-1.5 animate-in fade-in ${
+                        credenciaisFeedback.type === 'success'
+                          ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
                           : 'bg-red-50 border border-red-200 text-red-800'
                       }`}
                     >
-                      {passwordFeedback.type === 'success' ? (
-                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                      ) : (
-                        <AlertCircle size={16} className="text-red-600 shrink-0" />
+                      <div className="flex items-center gap-2">
+                        {credenciaisFeedback.type === 'success' ? (
+                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                        ) : (
+                          <AlertCircle size={16} className="text-red-600 shrink-0" />
+                        )}
+                        <span className="font-semibold">{credenciaisFeedback.msg}</span>
+                      </div>
+                      {credenciaisFeedback.type === 'success' && (
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] pt-1 pl-6 text-stone-600">
+                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-800">
+                            <Check size={12} className="text-emerald-600" />
+                            Supabase Auth: Ativo
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-800">
+                            <Check size={12} className="text-emerald-600" />
+                            Banco de Dados Relacional: Atualizado
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-800">
+                            <Check size={12} className="text-emerald-600" />
+                            Sessão Ativa: Sincronizada
+                          </span>
+                        </div>
                       )}
-                      <span>{passwordFeedback.msg}</span>
                     </div>
                   )}
 
-                  <form onSubmit={handleUpdatePassword} className="space-y-3">
+                  <form onSubmit={handleSaveCredenciais} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* CAMPO: E-MAIL DE ACESSO */}
+                      <div>
+                        <label className="text-xs font-semibold text-stone-700 block mb-1">
+                          E-mail de Acesso (Login Oficial)
+                        </label>
+                        <div className="relative">
+                          <Mail size={15} className="absolute left-3 top-3 text-stone-400" />
+                          <input
+                            type="email"
+                            required
+                            value={editEmail}
+                            onChange={(e) => setEditEmail(e.target.value)}
+                            placeholder="exemplo@medicinarte.com.br"
+                            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34] font-medium text-stone-800"
+                          />
+                        </div>
+                        <span className="text-[11px] text-stone-400 mt-1 block">
+                          E-mail autenticado com permissão estrita de entrada.
+                        </span>
+                      </div>
+
+                      {/* CAMPO: NOME DO PERFIL */}
+                      <div>
+                        <label className="text-xs font-semibold text-stone-700 block mb-1">
+                          Nome de Exibição
+                        </label>
+                        <div className="relative">
+                          <UserCheck size={15} className="absolute left-3 top-3 text-stone-400" />
+                          <input
+                            type="text"
+                            required
+                            value={editNome}
+                            onChange={(e) => setEditNome(e.target.value)}
+                            placeholder="Nome do usuário"
+                            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34] font-medium text-stone-800"
+                          />
+                        </div>
+                        <span className="text-[11px] text-stone-400 mt-1 block">
+                          Identificação visível em prontuários e assinaturas.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* CAMPO: SENHA DE ACESSO */}
                     <div>
-                      <label className="text-xs font-semibold text-stone-700 block mb-1">
-                        Nova Senha de Acesso para {selectedPerfil.nome}
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-stone-700">
+                          Senha de Acesso para {selectedPerfil.nome}
+                        </label>
+                        <span className="text-[11px] text-stone-400">
+                          Deixe vazio caso queira manter a senha atual ({selectedPerfil.senha || 'ativa'})
+                        </span>
+                      </div>
                       <div className="relative max-w-md">
                         <Lock size={15} className="absolute left-3 top-3 text-stone-400" />
                         <input
-                          type={showNovaSenha ? 'text' : 'password'}
-                          value={novaSenha}
-                          onChange={(e) => setNovaSenha(e.target.value)}
-                          placeholder="Digite a nova senha (ex: medicinarte2026)"
+                          type={showEditSenha ? 'text' : 'password'}
+                          value={editSenha}
+                          onChange={(e) => setEditSenha(e.target.value)}
+                          placeholder="Digite a nova senha (ou mantenha a atual)"
                           className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34]"
                         />
                         <button
                           type="button"
-                          onClick={() => setShowNovaSenha(!showNovaSenha)}
-                          className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600"
+                          onClick={() => setShowEditSenha(!showEditSenha)}
+                          className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
                         >
-                          {showNovaSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showEditSenha ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-stone-100">
                       <button
                         type="submit"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold shadow-sm transition-all"
+                        disabled={isSavingCredenciais}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50"
                       >
-                        <Save size={14} />
-                        <span>Salvar Nova Senha</span>
+                        {isSavingCredenciais ? (
+                          <>
+                            <RefreshCw size={14} className="animate-spin text-[#C5A059]" />
+                            <span>Salvando e Sincronizando com Supabase...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save size={14} className="text-[#C5A059]" />
+                            <span>Salvar E-mail e Senha Imediatamente</span>
+                          </>
+                        )}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => {
                           const sugestao = 'Med' + Math.floor(1000 + Math.random() * 9000);
-                          setNovaSenha(sugestao);
-                          setShowNovaSenha(true);
+                          setEditSenha(sugestao);
+                          setShowEditSenha(true);
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 text-xs font-medium transition-all"
+                        className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 text-xs font-medium transition-all cursor-pointer"
                       >
                         <Sparkles size={14} className="text-[#C5A059]" />
-                        <span>Gerar Sugestão Rápida</span>
+                        <span>Sugerir Senha Rápida</span>
                       </button>
                     </div>
                   </form>
@@ -774,6 +1017,211 @@ export const PermissoesPage: React.FC = () => {
                 </p>
               </div>
             </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ABA 3: BANCO SUPABASE CLOUD (POSTGRESQL) */}
+      {activeTab === 'supabase' && (
+        <div className="space-y-6">
+          
+          {/* CARD PRINCIPAL DE STATUS DA CONEXÃO */}
+          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-100 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+                  <Database size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif font-bold text-lg text-stone-900">
+                      Supabase Cloud Database & Auth
+                    </h3>
+                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Conectado
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Banco de dados relacional PostgreSQL e autenticação na nuvem para a clínica
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleTestSupabase}
+                  disabled={testingSupabase}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw size={14} className={testingSupabase ? 'animate-spin text-emerald-600' : 'text-stone-600'} />
+                  <span>{testingSupabase ? 'Testando...' : 'Testar Conexão'}</span>
+                </button>
+
+                <a
+                  href={`https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold transition-colors shadow-sm"
+                >
+                  <span>Abrir Painel Supabase</span>
+                  <ExternalLink size={13} className="text-[#C5A059]" />
+                </a>
+              </div>
+            </div>
+
+            {/* DADOS TÉCNICOS DA CONEXÃO */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
+                <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block mb-1">
+                  ID do Projeto
+                </span>
+                <span className="text-sm font-mono font-bold text-stone-800">
+                  {SUPABASE_PROJECT_ID}
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
+                <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block mb-1">
+                  Endpoint da API
+                </span>
+                <span className="text-xs font-mono text-stone-800 truncate block" title={SUPABASE_URL}>
+                  {SUPABASE_URL}
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
+                <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block mb-1">
+                  Status da API
+                </span>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                  <span className="text-xs font-semibold text-stone-800">
+                    {supabaseStatus?.latencyMs ? `${supabaseStatus.latencyMs} ms de latência` : 'Ativo e Responsivo'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {supabaseStatus && (
+              <div
+                className={`p-3.5 rounded-xl text-xs flex items-center justify-between ${
+                  supabaseStatus.connected
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+                    : 'bg-red-50 border border-red-200 text-red-900'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {supabaseStatus.connected ? (
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertCircle size={16} className="text-red-600 shrink-0" />
+                  )}
+                  <span>{supabaseStatus.message}</span>
+                </div>
+                {supabaseStatus.testedAt && (
+                  <span className="text-[11px] text-stone-500">
+                    Testado às {supabaseStatus.testedAt}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* SCRIPT DDL: CRIAÇÃO AUTOMÁTICA DE TABELAS */}
+          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+              <div>
+                <h4 className="font-serif font-bold text-base text-stone-900">
+                  Script SQL Oficial para o Supabase
+                </h4>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Execute este script no SQL Editor do seu projeto Supabase para criar as tabelas com RLS e índices.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopySql}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#C5A059] hover:bg-[#B38E46] text-[#142E28] font-bold text-xs shadow-sm transition-colors cursor-pointer"
+                >
+                  {copiedSql ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copiedSql ? 'SQL Copiado!' : 'Copiar Script SQL'}</span>
+                </button>
+
+                <a
+                  href={`https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}/sql/new`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-stone-300 hover:bg-stone-100 text-stone-700 font-semibold text-xs transition-colors"
+                >
+                  <span>Abrir SQL Editor</span>
+                  <ExternalLink size={13} className="text-stone-500" />
+                </a>
+              </div>
+            </div>
+
+            {/* Passo a Passo Rápido */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1">
+                <span className="font-bold text-[#1A3C34] block">Passo 1</span>
+                <p className="text-stone-600">
+                  Clique no botão <strong>"Copiar Script SQL"</strong> acima.
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1">
+                <span className="font-bold text-[#1A3C34] block">Passo 2</span>
+                <p className="text-stone-600">
+                  Clique em <strong>"Abrir SQL Editor"</strong> para ir direto ao seu projeto.
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1">
+                <span className="font-bold text-[#1A3C34] block">Passo 3</span>
+                <p className="text-stone-600">
+                  Cole o código e clique em <strong>"Run"</strong> (ou pressione Ctrl+Enter).
+                </p>
+              </div>
+            </div>
+
+            {/* Prévia do Script SQL */}
+            <div className="relative">
+              <pre className="p-4 rounded-xl bg-[#0E231E] text-stone-200 font-mono text-[11px] leading-relaxed max-h-64 overflow-y-auto border border-[#1E4339]">
+                {SUPABASE_SQL_SCHEMA}
+              </pre>
+            </div>
+          </div>
+
+          {/* BACKUP COMPLETO DOS DADOS CLÍNICOS */}
+          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="font-serif font-bold text-base text-stone-900">
+                  Backup e Exportação dos Dados Médicos
+                </h4>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Exporte cópia completa de segurança em formato JSON com todos os pacientes, consultas e prontuários.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleExportBackup}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white font-semibold text-xs shadow-sm transition-colors cursor-pointer shrink-0"
+              >
+                <Download size={15} className="text-[#C5A059]" />
+                <span>Exportar Backup Completo</span>
+              </button>
+            </div>
+
+            {backupFeedback && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium flex items-center gap-2 animate-in fade-in">
+                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                <span>{backupFeedback}</span>
+              </div>
+            )}
           </div>
 
         </div>

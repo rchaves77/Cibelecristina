@@ -576,6 +576,11 @@ class ClinicalDatabaseService {
     this.setStorage(STORAGE_KEYS.SESSION, perfil);
   }
 
+  setAuthenticatedSession(perfil: Perfil): void {
+    this.setStorage(STORAGE_KEYS.AUTH_STATE, true);
+    this.setStorage(STORAGE_KEYS.SESSION, perfil);
+  }
+
   login(email: string, senha: string): { success: boolean; message?: string; user?: Perfil } {
     const perfis = this.getPerfis();
     const cleanEmail = email.trim().toLowerCase();
@@ -625,12 +630,12 @@ class ClinicalDatabaseService {
 
   getPerfis(): Perfil[] {
     const list = this.getStorage<Perfil[]>(STORAGE_KEYS.PERFIS, INITIAL_PERFIS);
-    // Assegura que o perfil master clienteboxplus@gmail.com e outros essenciais estejam sempre salvos
+    // Assegura que os perfis base essenciais existam identificados por ID único
     let modified = false;
     for (const init of INITIAL_PERFIS) {
-      const exists = list.some(p => p.email.toLowerCase() === init.email.toLowerCase());
+      const exists = list.some(p => p.id === init.id);
       if (!exists) {
-        list.unshift(init);
+        list.push(init);
         modified = true;
       }
     }
@@ -649,31 +654,70 @@ class ClinicalDatabaseService {
       perfis.push(updated);
     }
     this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+
+    // Se o usuário ativo for esse perfil, atualiza a sessão
+    const active = this.getActiveUser();
+    if (active && active.id === updated.id) {
+      this.setActiveUser(updated);
+    }
   }
 
   savePerfil(updated: Perfil): void {
     this.updatePerfil(updated);
   }
 
-  updateSenhaPerfil(perfilId: string, novaSenha: string): Perfil | null {
+  updateCredenciaisPerfil(
+    perfilId: string, 
+    novoEmail: string, 
+    novaSenha?: string, 
+    novoNome?: string
+  ): { perfil: Perfil; emailChanged: boolean; passwordChanged: boolean } {
     const perfis = this.getPerfis();
     const idx = perfis.findIndex(p => p.id === perfilId);
-    if (idx === -1) return null;
-
-    perfis[idx] = {
-      ...perfis[idx],
-      senha: novaSenha,
-      senha_alterada_em: new Date().toISOString()
-    };
-    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
-
-    // Se o usuário ativo for esse perfil, atualiza a sessão
-    const active = this.getActiveUser();
-    if (active && active.id === perfilId) {
-      this.setActiveUser(perfis[idx]);
+    if (idx === -1) {
+      throw new Error('Perfil não encontrado no sistema.');
     }
 
-    return perfis[idx];
+    const cleanEmail = novoEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new Error('Por favor, informe um endereço de e-mail válido.');
+    }
+
+    // Verifica se outro perfil já está usando este mesmo e-mail
+    const emailConflito = perfis.some(p => p.id !== perfilId && p.email.toLowerCase() === cleanEmail);
+    if (emailConflito) {
+      throw new Error(`O e-mail "${cleanEmail}" já está cadastrado para outro usuário.`);
+    }
+
+    const anterior = perfis[idx];
+    const emailChanged = anterior.email.toLowerCase() !== cleanEmail;
+    const passwordChanged = Boolean(novaSenha && novaSenha.trim() && novaSenha.trim() !== anterior.senha);
+
+    const updated: Perfil = {
+      ...anterior,
+      email: cleanEmail,
+      ...(novoNome && novoNome.trim() ? { nome: novoNome.trim() } : {}),
+      ...(passwordChanged ? { 
+        senha: novaSenha!.trim(), 
+        senha_alterada_em: new Date().toISOString() 
+      } : {})
+    };
+
+    perfis[idx] = updated;
+    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+
+    // Se o usuário ativo for esse perfil, atualiza a sessão imediatamente
+    const active = this.getActiveUser();
+    if (active && active.id === perfilId) {
+      this.setActiveUser(updated);
+    }
+
+    return { perfil: updated, emailChanged, passwordChanged };
+  }
+
+  updateSenhaPerfil(perfilId: string, novaSenha: string): Perfil | null {
+    const res = this.updateCredenciaisPerfil(perfilId, this.getPerfis().find(p => p.id === perfilId)?.email || '', novaSenha);
+    return res.perfil;
   }
 
   gerarResetSenha(emailOuId: string): { success: boolean; token: string; link: string; perfil?: Perfil; mensagemPreview: string } {

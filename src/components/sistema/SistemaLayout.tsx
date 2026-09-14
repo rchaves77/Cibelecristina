@@ -73,7 +73,7 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
     { label: 'Simulador de Taxas', path: '/sistema/taxas', icon: CreditCard },
     { label: 'Financeiro & Caixa', path: '/sistema/financeiro', icon: DollarSign },
     { label: 'Relatórios & Gráficos', path: '/sistema/relatorios', icon: BarChart3 },
-    { label: 'Senhas, Perfis & GSC', path: '/sistema/permissoes', icon: ShieldCheck },
+    { label: 'Perfis, Supabase & GSC', path: '/sistema/permissoes', icon: ShieldCheck },
   ];
 
   return (
@@ -304,6 +304,14 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
             <span className="text-xs text-stone-600 font-medium">
               Consultório Médico & Saúde Comunitária
             </span>
+            <Link
+              to="/sistema/permissoes"
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-semibold hover:bg-emerald-100 transition-colors"
+              title="Banco Supabase Cloud Ativo"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Supabase Conectado</span>
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">

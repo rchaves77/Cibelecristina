@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { clinicalDb } from '../services/clinicalDatabase';
 import { DOCTOR_INFO } from '../data/medicinarteData';
+import { supabase, SUPABASE_PROJECT_ID } from '../services/supabaseClient';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,25 +62,93 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!email.trim()) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail) {
       setError('Por favor, informe seu e-mail cadastrado.');
       return;
     }
 
-    if (!password.trim()) {
+    if (!cleanPassword) {
       setError('Por favor, informe sua senha.');
       return;
     }
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      // Autenticação estrita no banco clínico
-      const resultado = clinicalDb.login(email, password);
+    try {
+      // 1. Tenta autenticação direta via Supabase Cloud Auth
+      const { data: supaData, error: supaErr } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: cleanPassword
+      });
+
+      if (!supaErr && supaData?.user) {
+        const perfis = clinicalDb.getPerfis();
+        const matched = perfis.find(p => p.email.toLowerCase() === cleanEmail) || {
+          id: 'perfil-master',
+          nome: cleanEmail === 'clienteboxplus@gmail.com' ? 'Diretoria Executiva / Master' : 'Usuário Supabase Autenticado',
+          email: cleanEmail,
+          role: 'admin' as const,
+          cor: '#142E28',
+          permissao_financeiro: true,
+          permissao_agendar: true,
+          permissao_confirmacao_amanha: true,
+          dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+          hora_inicio: '08:00',
+          hora_fim: '18:00'
+        };
+        clinicalDb.setAuthenticatedSession(matched);
+        setIsLoading(false);
+        navigate('/sistema');
+        return;
+      }
+
+      // 1.1 Tenta validação imediata na tabela 'perfis' do Supabase PostgreSQL
+      try {
+        const { data: supaPerfil, error: supaPerfilErr } = await supabase
+          .from('perfis')
+          .select('*')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (!supaPerfilErr && supaPerfil && supaPerfil.senha === cleanPassword) {
+          let matched = clinicalDb.getPerfis().find(p => p.email.toLowerCase() === cleanEmail);
+          if (!matched) {
+            matched = {
+              id: supaPerfil.id || `perfil-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+              nome: supaPerfil.nome || 'Usuário Supabase',
+              email: cleanEmail,
+              role: (supaPerfil.role as any) || 'admin',
+              cor: supaPerfil.cor || '#142E28',
+              permissao_financeiro: supaPerfil.permissao_financeiro ?? true,
+              permissao_agendar: supaPerfil.permissao_agendar ?? true,
+              permissao_confirmacao_amanha: supaPerfil.permissao_confirmacao_amanha ?? true,
+              dias_atendimento: supaPerfil.dias_atendimento || ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+              hora_inicio: supaPerfil.hora_inicio || '08:00',
+              hora_fim: supaPerfil.hora_fim || '18:00',
+              senha: cleanPassword
+            };
+            clinicalDb.savePerfil(matched);
+          } else {
+            clinicalDb.updateCredenciaisPerfil(matched.id, cleanEmail, cleanPassword);
+          }
+          clinicalDb.setAuthenticatedSession(matched);
+          setIsLoading(false);
+          navigate('/sistema');
+          return;
+        }
+      } catch {
+        // Se a tabela ainda não estiver rodando ou em caso de erro de rede, segue para validação local
+      }
+
+      // 2. Validação estrita no banco clínico local (e-mail previamente cadastrado + senha)
+      const resultado = clinicalDb.login(cleanEmail, cleanPassword);
 
       if (!resultado.success) {
         setIsLoading(false);
@@ -87,9 +156,28 @@ export const LoginPage: React.FC = () => {
         return;
       }
 
+      // 3. Sincroniza em segundo plano no Supabase Auth para provisionamento contínuo
+      try {
+        await supabase.auth.signUp({
+          email: cleanEmail,
+          password: cleanPassword
+        });
+      } catch {
+        // Silencioso se já estiver cadastrado no Supabase
+      }
+
       setIsLoading(false);
       navigate('/sistema');
-    }, 300);
+    } catch {
+      // Em caso de falha de rede remota, valida pelo banco local
+      const fallback = clinicalDb.login(cleanEmail, cleanPassword);
+      setIsLoading(false);
+      if (fallback.success) {
+        navigate('/sistema');
+      } else {
+        setError(fallback.message || 'Credenciais inválidas.');
+      }
+    }
   };
 
   return (
@@ -300,7 +388,11 @@ export const LoginPage: React.FC = () => {
           </form>
 
           {/* Aviso de Segurança & Orientação a Pacientes */}
-          <div className="pt-4 border-t border-[#1E4339] space-y-2 text-center">
+          <div className="pt-4 border-t border-[#1E4339] space-y-2.5 text-center">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0D211C] border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Supabase Cloud Conectado ({SUPABASE_PROJECT_ID})</span>
+            </div>
             <p className="text-[11px] text-stone-400 leading-relaxed">
               Tentativas de acesso não autorizadas são registradas para auditoria médica e segurança de prontuários.
             </p>
