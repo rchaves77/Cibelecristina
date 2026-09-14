@@ -83,7 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenBooking, onOpenAdmin, acti
           </a>
 
           {/* Desktop Navigation */}
-          <nav className="hidden xl:flex items-center gap-7 text-[11px] uppercase tracking-widest font-semibold">
+          <nav className="header-nav hidden lg:flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-7 text-[11px] uppercase tracking-widest font-semibold whitespace-nowrap">
             {navLinks.map(link => {
               const isActive = activeSection === link.href.substring(1);
               return (

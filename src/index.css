@@ -148,7 +148,10 @@ body {
 .header-nav {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: clamp(0.375rem, 1.2vw, 1.25rem);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  transition: gap 0.2s ease;
 }
 
 .nav-link {
@@ -156,7 +159,9 @@ body {
   font-weight: 500;
   color: var(--text);
   text-decoration: none;
-  transition: color 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.2s ease, font-size 0.2s ease;
 }
 
 .nav-link:hover {
@@ -1596,6 +1601,56 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+/* Redução dinâmica de espaçamento no .header-nav para manter em uma única linha antes do mobile */
+@media (max-width: 1200px) {
+  .header-inner {
+    gap: 1.25rem;
+  }
+  .header-nav {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 1120px) {
+  .header-inner {
+    gap: 1rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+  .header-nav {
+    gap: 0.75rem;
+  }
+  .nav-link {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 1040px) {
+  .header-inner {
+    gap: 0.75rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .header-nav {
+    gap: 0.5rem;
+  }
+  .nav-link {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 960px) {
+  .header-inner {
+    gap: 0.5rem;
+  }
+  .header-nav {
+    gap: 0.375rem;
+  }
+  .nav-link {
+    font-size: 0.825rem;
+  }
 }
 
 @media (max-width: 900px) {
