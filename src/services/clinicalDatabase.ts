@@ -33,11 +33,26 @@ const STORAGE_KEYS = {
   ALERTAS_SOBRECARGA: 'cibele_db_alertas_sobrecarga_v1',
   FINANCEIRO: 'cibele_db_financeiro_v1',
   SESSION: 'cibele_db_active_user_v1',
+  AUTH_STATE: 'cibele_db_is_authenticated_v1',
   GSC: 'cibele_db_gsc_v1'
 };
 
 // Seed Inicial de Perfis
 const INITIAL_PERFIS: Perfil[] = [
+  {
+    id: 'perfil-master',
+    nome: 'Diretoria Executiva / Master',
+    email: 'clienteboxplus@gmail.com',
+    role: 'admin',
+    cor: '#142E28',
+    permissao_financeiro: true,
+    permissao_agendar: true,
+    permissao_confirmacao_amanha: true,
+    dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'],
+    hora_inicio: '07:00',
+    hora_fim: '22:00',
+    senha: 'admin123'
+  },
   {
     id: 'perfil-cibele',
     nome: 'Dra. Cibele Cristina Cunha Brígido',
@@ -543,22 +558,86 @@ class ClinicalDatabaseService {
     }
   }
 
-  // --- SESSÃO DO USUÁRIO ---
+  // --- SESSÃO E AUTENTICAÇÃO DO USUÁRIO ---
+  isAuthenticated(): boolean {
+    const isAuth = this.getStorage<boolean>(STORAGE_KEYS.AUTH_STATE, false);
+    const active = this.getStorage<Perfil | null>(STORAGE_KEYS.SESSION, null);
+    return isAuth === true && active !== null;
+  }
+
   getActiveUser(): Perfil {
     const user = this.getStorage<Perfil | null>(STORAGE_KEYS.SESSION, null);
     if (user) return user;
-    // Default para Dra. Cibele
-    const defaultUser = INITIAL_PERFIS[0];
-    this.setStorage(STORAGE_KEYS.SESSION, defaultUser);
-    return defaultUser;
+    const perfis = this.getPerfis();
+    return perfis[0];
   }
 
   setActiveUser(perfil: Perfil): void {
     this.setStorage(STORAGE_KEYS.SESSION, perfil);
   }
 
+  login(email: string, senha: string): { success: boolean; message?: string; user?: Perfil } {
+    const perfis = this.getPerfis();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanSenha = senha.trim();
+
+    if (!cleanEmail) {
+      return { success: false, message: 'Por favor, informe seu e-mail cadastrado.' };
+    }
+
+    if (!cleanSenha) {
+      return { success: false, message: 'Por favor, informe sua senha de acesso.' };
+    }
+
+    // Busca perfil exatamente pelo email cadastrado (case-insensitive)
+    const matched = perfis.find(p => p.email.toLowerCase() === cleanEmail);
+
+    if (!matched) {
+      return {
+        success: false,
+        message: 'Acesso negado: Este e-mail não possui cadastro ou autorização no sistema.'
+      };
+    }
+
+    // Validação estrita de senha
+    const senhaCadastrada = matched.senha || 'admin123';
+    if (cleanSenha !== senhaCadastrada) {
+      return {
+        success: false,
+        message: 'Senha incorreta. Verifique suas credenciais ou solicite a redefinição.'
+      };
+    }
+
+    // Autenticação com sucesso
+    this.setStorage(STORAGE_KEYS.AUTH_STATE, true);
+    this.setStorage(STORAGE_KEYS.SESSION, matched);
+
+    return {
+      success: true,
+      user: matched
+    };
+  }
+
+  logout(): void {
+    this.setStorage(STORAGE_KEYS.AUTH_STATE, false);
+    this.setStorage(STORAGE_KEYS.SESSION, null);
+  }
+
   getPerfis(): Perfil[] {
-    return this.getStorage<Perfil[]>(STORAGE_KEYS.PERFIS, INITIAL_PERFIS);
+    const list = this.getStorage<Perfil[]>(STORAGE_KEYS.PERFIS, INITIAL_PERFIS);
+    // Assegura que o perfil master clienteboxplus@gmail.com e outros essenciais estejam sempre salvos
+    let modified = false;
+    for (const init of INITIAL_PERFIS) {
+      const exists = list.some(p => p.email.toLowerCase() === init.email.toLowerCase());
+      if (!exists) {
+        list.unshift(init);
+        modified = true;
+      }
+    }
+    if (modified) {
+      this.setStorage(STORAGE_KEYS.PERFIS, list);
+    }
+    return list;
   }
 
   updatePerfil(updated: Perfil): void {

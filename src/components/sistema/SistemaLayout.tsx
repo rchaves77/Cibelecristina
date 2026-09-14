@@ -39,12 +39,23 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
   const [showCidModal, setShowCidModal] = useState(false);
 
   useEffect(() => {
+    // Guarda de Rotas: Apenas usuários autenticados podem acessar o sistema
+    if (!clinicalDb.isAuthenticated()) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
     const user = clinicalDb.getActiveUser();
     setCurrentUser(user);
     setPerfis(clinicalDb.getPerfis());
     const amanhaList = clinicalDb.getAgendamentosConfirmacaoAmanha();
     setConfirmacoesAmanha(amanhaList);
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
+
+  const handleLogout = () => {
+    clinicalDb.logout();
+    navigate('/login', { replace: true });
+  };
 
   const handleSwitchUser = (perfilId: string) => {
     const target = perfis.find(p => p.id === perfilId);
@@ -150,7 +161,7 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
 
           <button
             type="button"
-            onClick={() => navigate('/login')}
+            onClick={handleLogout}
             className="flex items-center gap-2 w-full px-3 py-1.5 text-stone-400 hover:text-rose-300 text-xs font-medium transition-colors"
           >
             <LogOut size={14} />
@@ -265,14 +276,17 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
                 <Globe size={15} className="text-[#C5A059]" />
                 <span>Ver Site Oficial</span>
               </Link>
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 px-3 py-1.5 text-stone-400 text-xs"
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-stone-400 hover:text-rose-300 text-xs text-left cursor-pointer"
               >
                 <LogOut size={14} />
                 <span>Encerrar Sessão</span>
-              </Link>
+              </button>
             </div>
           </div>
         </div>
