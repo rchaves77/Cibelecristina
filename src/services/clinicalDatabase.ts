@@ -42,6 +42,7 @@ const INITIAL_PERFIS: Perfil[] = [
   {
     id: 'perfil-master',
     nome: 'Diretoria Executiva / Master',
+    usuario: 'admin',
     email: 'clienteboxplus@gmail.com',
     role: 'admin',
     cor: '#142E28',
@@ -56,6 +57,7 @@ const INITIAL_PERFIS: Perfil[] = [
   {
     id: 'perfil-cibele',
     nome: 'Dra. Cibele Cristina Cunha Brígido',
+    usuario: 'cibele',
     email: 'cibele@medicinarte.com.br',
     role: 'profissional',
     cor: '#1A3C34', // Verde Floresta Oficial
@@ -72,6 +74,7 @@ const INITIAL_PERFIS: Perfil[] = [
   {
     id: 'perfil-secretaria',
     nome: 'Recepção / Secretária Clínica',
+    usuario: 'recepcao',
     email: 'recepcao@medicinarte.com.br',
     role: 'secretaria',
     cor: '#C5A059', // Ouro Suave Oficial
@@ -86,6 +89,7 @@ const INITIAL_PERFIS: Perfil[] = [
   {
     id: 'perfil-admin',
     nome: 'Administrador de Sistema (TI / Gestão)',
+    usuario: 'ti',
     email: 'admin@medicinarte.com.br',
     role: 'admin',
     cor: '#2D3748',
@@ -581,26 +585,29 @@ class ClinicalDatabaseService {
     this.setStorage(STORAGE_KEYS.SESSION, perfil);
   }
 
-  login(email: string, senha: string): { success: boolean; message?: string; user?: Perfil } {
+  login(usuarioOuEmail: string, senha: string): { success: boolean; message?: string; user?: Perfil } {
     const perfis = this.getPerfis();
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanId = usuarioOuEmail.trim().toLowerCase();
     const cleanSenha = senha.trim();
 
-    if (!cleanEmail) {
-      return { success: false, message: 'Por favor, informe seu e-mail cadastrado.' };
+    if (!cleanId) {
+      return { success: false, message: 'Por favor, informe seu usuário ou e-mail cadastrado.' };
     }
 
     if (!cleanSenha) {
       return { success: false, message: 'Por favor, informe sua senha de acesso.' };
     }
 
-    // Busca perfil exatamente pelo email cadastrado (case-insensitive)
-    const matched = perfis.find(p => p.email.toLowerCase() === cleanEmail);
+    // Busca perfil por usuário (ex: 'admin', 'cibele', 'recepcao') OU por e-mail cadastrado (case-insensitive)
+    const matched = perfis.find(p => 
+      (p.usuario && p.usuario.toLowerCase() === cleanId) || 
+      p.email.toLowerCase() === cleanId
+    );
 
     if (!matched) {
       return {
         success: false,
-        message: 'Acesso negado: Este e-mail não possui cadastro ou autorização no sistema.'
+        message: 'Acesso negado: Usuário ou e-mail não encontrado no sistema.'
       };
     }
 
@@ -639,6 +646,17 @@ class ClinicalDatabaseService {
         modified = true;
       }
     }
+    // Garante que todo perfil tenha um usuário para login direto e simples
+    for (const p of list) {
+      if (!p.usuario) {
+        if (p.id === 'perfil-master') p.usuario = 'admin';
+        else if (p.id === 'perfil-cibele') p.usuario = 'cibele';
+        else if (p.id === 'perfil-secretaria') p.usuario = 'recepcao';
+        else if (p.id === 'perfil-admin') p.usuario = 'ti';
+        else p.usuario = p.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+        modified = true;
+      }
+    }
     if (modified) {
       this.setStorage(STORAGE_KEYS.PERFIS, list);
     }
@@ -670,8 +688,9 @@ class ClinicalDatabaseService {
     perfilId: string, 
     novoEmail: string, 
     novaSenha?: string, 
-    novoNome?: string
-  ): { perfil: Perfil; emailChanged: boolean; passwordChanged: boolean } {
+    novoNome?: string,
+    novoUsuario?: string
+  ): { perfil: Perfil; emailChanged: boolean; passwordChanged: boolean; usuarioChanged: boolean } {
     const perfis = this.getPerfis();
     const idx = perfis.findIndex(p => p.id === perfilId);
     if (idx === -1) {
@@ -683,6 +702,15 @@ class ClinicalDatabaseService {
       throw new Error('Por favor, informe um endereço de e-mail válido.');
     }
 
+    // Verifica unicidade do usuário se fornecido
+    const cleanUsuario = (novoUsuario || '').trim().toLowerCase().replace(/\s+/g, '');
+    if (cleanUsuario) {
+      const usuarioConflito = perfis.some(p => p.id !== perfilId && (p.usuario || '').toLowerCase() === cleanUsuario);
+      if (usuarioConflito) {
+        throw new Error(`O usuário "${cleanUsuario}" já está em uso por outro colaborador.`);
+      }
+    }
+
     // Verifica se outro perfil já está usando este mesmo e-mail
     const emailConflito = perfis.some(p => p.id !== perfilId && p.email.toLowerCase() === cleanEmail);
     if (emailConflito) {
@@ -692,10 +720,12 @@ class ClinicalDatabaseService {
     const anterior = perfis[idx];
     const emailChanged = anterior.email.toLowerCase() !== cleanEmail;
     const passwordChanged = Boolean(novaSenha && novaSenha.trim() && novaSenha.trim() !== anterior.senha);
+    const usuarioChanged = Boolean(cleanUsuario && cleanUsuario !== (anterior.usuario || ''));
 
     const updated: Perfil = {
       ...anterior,
       email: cleanEmail,
+      ...(cleanUsuario ? { usuario: cleanUsuario } : {}),
       ...(novoNome && novoNome.trim() ? { nome: novoNome.trim() } : {}),
       ...(passwordChanged ? { 
         senha: novaSenha!.trim(), 
@@ -712,7 +742,7 @@ class ClinicalDatabaseService {
       this.setActiveUser(updated);
     }
 
-    return { perfil: updated, emailChanged, passwordChanged };
+    return { perfil: updated, emailChanged, passwordChanged, usuarioChanged };
   }
 
   updateSenhaPerfil(perfilId: string, novaSenha: string): Perfil | null {
@@ -785,10 +815,10 @@ class ClinicalDatabaseService {
 
   getGoogleSearchConsoleConfig(): GoogleSearchConsoleConfig {
     const defaultConfig: GoogleSearchConsoleConfig = {
-      token: 'google-site-verification=cibele_rio_branco_medicinarte_gsc',
-      htmlFileName: 'google-site-verification.html',
-      sitemapUrl: 'https://dracibelecristina.med.br/sitemap.xml',
-      propriedadeUrl: 'https://dracibelecristina.med.br',
+      token: 'google1bee8d4e69ef390f',
+      htmlFileName: 'google1bee8d4e69ef390f.html',
+      sitemapUrl: 'https://cibelecristina.vercel.app/sitemap.xml',
+      propriedadeUrl: 'https://cibelecristina.vercel.app',
       status: 'configurado',
       ultimaAtualizacao: new Date().toISOString()
     };

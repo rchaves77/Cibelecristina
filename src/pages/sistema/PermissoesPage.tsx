@@ -51,7 +51,8 @@ export const PermissoesPage: React.FC = () => {
   const [copiedSql, setCopiedSql] = useState(false);
   const [backupFeedback, setBackupFeedback] = useState('');
 
-  // Estados de Senha e Credenciais (E-mail e Senha) com sincronização Supabase
+  // Estados de Senha e Credenciais (Usuário, E-mail e Senha)
+  const [editUsuario, setEditUsuario] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editNome, setEditNome] = useState('');
   const [editSenha, setEditSenha] = useState('');
@@ -60,8 +61,6 @@ export const PermissoesPage: React.FC = () => {
   const [credenciaisFeedback, setCredenciaisFeedback] = useState<{
     type: 'success' | 'error';
     msg: string;
-    supabaseAuthSynced?: boolean;
-    supabaseDbSynced?: boolean;
   } | null>(null);
 
   // Estados legados mantidos para compatibilidade
@@ -99,6 +98,7 @@ export const PermissoesPage: React.FC = () => {
     setPerfis(list);
     if (list.length > 0) {
       setSelectedPerfil(list[0]);
+      setEditUsuario(list[0].usuario || list[0].id.replace('perfil-', ''));
       setEditEmail(list[0].email);
       setEditNome(list[0].nome);
     }
@@ -114,6 +114,7 @@ export const PermissoesPage: React.FC = () => {
   // Sincroniza campos quando o perfil selecionado muda
   useEffect(() => {
     if (selectedPerfil) {
+      setEditUsuario(selectedPerfil.usuario || selectedPerfil.id.replace('perfil-', ''));
       setEditEmail(selectedPerfil.email);
       setEditNome(selectedPerfil.nome);
       setEditSenha('');
@@ -162,16 +163,26 @@ export const PermissoesPage: React.FC = () => {
     setTimeout(() => setBackupFeedback(''), 4000);
   };
 
-  // --- SALVAR E-MAIL E SENHA COM SINCRONIZAÇÃO IMEDIATA NO SUPABASE ---
+  // --- SALVAR USUÁRIO, E-MAIL E SENHA DE ACESSO ---
   const handleSaveCredenciais = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPerfil) return;
 
+    const cleanUsuario = editUsuario.trim().toLowerCase().replace(/\s+/g, '');
     const cleanEmail = editEmail.trim().toLowerCase();
+
+    if (!cleanUsuario) {
+      setCredenciaisFeedback({
+        type: 'error',
+        msg: 'Por favor, defina um nome de usuário para o login (ex: admin, cibele, recepcao).'
+      });
+      return;
+    }
+
     if (!cleanEmail || !cleanEmail.includes('@')) {
       setCredenciaisFeedback({
         type: 'error',
-        msg: 'Por favor, informe um endereço de e-mail válido.'
+        msg: 'Por favor, informe um endereço de e-mail válido para manter no cadastro.'
       });
       return;
     }
@@ -185,16 +196,18 @@ export const PermissoesPage: React.FC = () => {
         selectedPerfil.id,
         cleanEmail,
         editSenha.trim() || undefined,
-        editNome.trim() || undefined
+        editNome.trim() || undefined,
+        cleanUsuario
       );
 
-      // 2. Sincroniza imediatamente com o Supabase Cloud (Auth + Tabela perfis)
-      const supaResult = await syncCredentialsToSupabase({
+      // 2. Sincroniza em segundo plano com o Supabase Cloud
+      await syncCredentialsToSupabase({
         perfilId: updatedPerfil.id,
         email: cleanEmail,
         password: editSenha.trim() || updatedPerfil.senha,
         nome: updatedPerfil.nome,
-        role: updatedPerfil.role
+        role: updatedPerfil.role,
+        usuario: updatedPerfil.usuario
       });
 
       // 3. Atualiza estado da UI
@@ -205,15 +218,13 @@ export const PermissoesPage: React.FC = () => {
 
       setCredenciaisFeedback({
         type: 'success',
-        msg: `E-mail e credenciais de "${updatedPerfil.nome}" atualizados e sincronizados no Supabase com sucesso!`,
-        supabaseAuthSynced: supaResult.supabaseAuthSynced,
-        supabaseDbSynced: supaResult.supabaseDbSynced
+        msg: `Usuário "${updatedPerfil.usuario}" e credenciais de "${updatedPerfil.nome}" salvos com sucesso!`
       });
-      setTimeout(() => setCredenciaisFeedback(null), 8000);
+      setTimeout(() => setCredenciaisFeedback(null), 5000);
     } catch (err: any) {
       setCredenciaisFeedback({
         type: 'error',
-        msg: err?.message || 'Erro ao atualizar credenciais do perfil.'
+        msg: err?.message || 'Erro ao atualizar dados de acesso do perfil.'
       });
     } finally {
       setIsSavingCredenciais(false);
@@ -362,8 +373,7 @@ export const PermissoesPage: React.FC = () => {
             }`}
           >
             <Database size={15} className="text-emerald-600" />
-            <span>Banco Supabase Cloud</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Banco de Dados & Nuvem</span>
           </button>
         </div>
       </div>
@@ -415,7 +425,9 @@ export const PermissoesPage: React.FC = () => {
                     </div>
 
                     <div className="text-[11px] text-stone-500 mt-1 flex items-center justify-between">
-                      <span className="truncate">{p.email}</span>
+                      <span className="truncate">
+                        <strong className="text-stone-800 font-mono">@{p.usuario || p.id.replace('perfil-', '')}</strong> • {p.email}
+                      </span>
                       {p.senha && (
                         <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0">
                           Senha ativa
@@ -428,7 +440,7 @@ export const PermissoesPage: React.FC = () => {
             </div>
 
             <div className="p-3 bg-stone-50 border border-stone-200/80 rounded-xl text-[11px] text-stone-600 leading-relaxed">
-              💡 <strong>Dica de Segurança:</strong> Selecione o perfil para alterar a senha diretamente ou para enviar um link de redefinição por e-mail.
+              💡 <strong>Dica de Segurança:</strong> Selecione o perfil para alterar o usuário de login, e-mail cadastrado ou senha de acesso.
             </div>
           </div>
 
@@ -449,7 +461,11 @@ export const PermissoesPage: React.FC = () => {
                       <h3 className="font-serif font-bold text-base text-stone-900">
                         {selectedPerfil.nome}
                       </h3>
-                      <p className="text-xs text-stone-500 flex items-center gap-1.5">
+                      <p className="text-xs text-stone-500 flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono font-bold text-stone-800 bg-stone-100 px-2 py-0.5 rounded">
+                          Usuário: @{selectedPerfil.usuario || selectedPerfil.id.replace('perfil-', '')}
+                        </span>
+                        <span>•</span>
                         <span>{selectedPerfil.email}</span>
                         <span>•</span>
                         <span className="uppercase font-semibold text-[#8F7030]">
@@ -467,67 +483,66 @@ export const PermissoesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* MÓDULO 1: EDITAR E-MAIL E SENHA COM VALIDAÇÃO IMEDIATA NO SUPABASE */}
+                {/* MÓDULO 1: EDITAR USUÁRIO, E-MAIL E SENHA */}
                 <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <KeyRound size={18} className="text-[#C5A059]" />
                         <h4 className="font-serif font-bold text-sm text-stone-900">
-                          Editar E-mail e Senha de Acesso (Supabase Cloud)
+                          Editar Usuário, E-mail e Senha de Acesso
                         </h4>
-                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Sincronização Imediata
-                        </span>
                       </div>
                       <p className="text-xs text-stone-500 mt-1">
-                        Edite o e-mail ou redefina a senha deste perfil. As atualizações entram em vigor e são validadas no Supabase automaticamente.
+                        Defina o nome de usuário para acesso simples ao sistema, mantendo o e-mail cadastrado e a senha de segurança.
                       </p>
                     </div>
                   </div>
 
                   {credenciaisFeedback && (
                     <div
-                      className={`p-3.5 rounded-xl text-xs font-medium space-y-1.5 animate-in fade-in ${
+                      className={`p-3.5 rounded-xl text-xs font-medium animate-in fade-in flex items-center gap-2 ${
                         credenciaisFeedback.type === 'success'
                           ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
                           : 'bg-red-50 border border-red-200 text-red-800'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        {credenciaisFeedback.type === 'success' ? (
-                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                        ) : (
-                          <AlertCircle size={16} className="text-red-600 shrink-0" />
-                        )}
-                        <span className="font-semibold">{credenciaisFeedback.msg}</span>
-                      </div>
-                      {credenciaisFeedback.type === 'success' && (
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] pt-1 pl-6 text-stone-600">
-                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-800">
-                            <Check size={12} className="text-emerald-600" />
-                            Supabase Auth: Ativo
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-800">
-                            <Check size={12} className="text-emerald-600" />
-                            Banco de Dados Relacional: Atualizado
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-800">
-                            <Check size={12} className="text-emerald-600" />
-                            Sessão Ativa: Sincronizada
-                          </span>
-                        </div>
+                      {credenciaisFeedback.type === 'success' ? (
+                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      ) : (
+                        <AlertCircle size={16} className="text-red-600 shrink-0" />
                       )}
+                      <span>{credenciaisFeedback.msg}</span>
                     </div>
                   )}
 
                   <form onSubmit={handleSaveCredenciais} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* CAMPO: E-MAIL DE ACESSO */}
+                      {/* CAMPO: USUÁRIO DE ACESSO (LOGIN SIMPLES) */}
                       <div>
                         <label className="text-xs font-semibold text-stone-700 block mb-1">
-                          E-mail de Acesso (Login Oficial)
+                          Nome de Usuário (Login Direto)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-2.5 text-stone-400 font-mono font-bold text-xs">@</span>
+                          <input
+                            type="text"
+                            required
+                            value={editUsuario}
+                            onChange={(e) => setEditUsuario(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                            placeholder="ex: admin, cibele, recepcao"
+                            className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34] font-mono font-medium text-stone-800"
+                          />
+                        </div>
+                        <span className="text-[11px] text-stone-400 mt-1 block">
+                          Identificador rápido para digitar na tela de login.
+                        </span>
+                      </div>
+
+                      {/* CAMPO: E-MAIL DE CADASTRO */}
+                      <div>
+                        <label className="text-xs font-semibold text-stone-700 block mb-1">
+                          E-mail Cadastrado no Sistema
                         </label>
                         <div className="relative">
                           <Mail size={15} className="absolute left-3 top-3 text-stone-400" />
@@ -541,10 +556,12 @@ export const PermissoesPage: React.FC = () => {
                           />
                         </div>
                         <span className="text-[11px] text-stone-400 mt-1 block">
-                          E-mail autenticado com permissão estrita de entrada.
+                          Permanecerá cadastrado para segurança e comunicações.
                         </span>
                       </div>
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* CAMPO: NOME DO PERFIL */}
                       <div>
                         <label className="text-xs font-semibold text-stone-700 block mb-1">
@@ -565,34 +582,37 @@ export const PermissoesPage: React.FC = () => {
                           Identificação visível em prontuários e assinaturas.
                         </span>
                       </div>
-                    </div>
 
-                    {/* CAMPO: SENHA DE ACESSO */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-semibold text-stone-700">
-                          Senha de Acesso para {selectedPerfil.nome}
-                        </label>
-                        <span className="text-[11px] text-stone-400">
-                          Deixe vazio caso queira manter a senha atual ({selectedPerfil.senha || 'ativa'})
+                      {/* CAMPO: SENHA DE ACESSO */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-semibold text-stone-700">
+                            Senha de Acesso
+                          </label>
+                          <span className="text-[10px] text-stone-400">
+                            {selectedPerfil.senha ? 'Preencha só se quiser alterar' : 'Definir senha'}
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <Lock size={15} className="absolute left-3 top-3 text-stone-400" />
+                          <input
+                            type={showEditSenha ? 'text' : 'password'}
+                            value={editSenha}
+                            onChange={(e) => setEditSenha(e.target.value)}
+                            placeholder="Deixe em branco para manter a atual"
+                            className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowEditSenha(!showEditSenha)}
+                            className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
+                          >
+                            {showEditSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        <span className="text-[11px] text-stone-400 mt-1 block">
+                          Senha confidencial para autenticação.
                         </span>
-                      </div>
-                      <div className="relative max-w-md">
-                        <Lock size={15} className="absolute left-3 top-3 text-stone-400" />
-                        <input
-                          type={showEditSenha ? 'text' : 'password'}
-                          value={editSenha}
-                          onChange={(e) => setEditSenha(e.target.value)}
-                          placeholder="Digite a nova senha (ou mantenha a atual)"
-                          className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowEditSenha(!showEditSenha)}
-                          className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
-                        >
-                          {showEditSenha ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
                       </div>
                     </div>
 
@@ -605,12 +625,12 @@ export const PermissoesPage: React.FC = () => {
                         {isSavingCredenciais ? (
                           <>
                             <RefreshCw size={14} className="animate-spin text-[#C5A059]" />
-                            <span>Salvando e Sincronizando com Supabase...</span>
+                            <span>Salvando Alterações...</span>
                           </>
                         ) : (
                           <>
                             <Save size={14} className="text-[#C5A059]" />
-                            <span>Salvar E-mail e Senha Imediatamente</span>
+                            <span>Salvar Dados de Acesso</span>
                           </>
                         )}
                       </button>
@@ -625,7 +645,7 @@ export const PermissoesPage: React.FC = () => {
                         className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 text-xs font-medium transition-all cursor-pointer"
                       >
                         <Sparkles size={14} className="text-[#C5A059]" />
-                        <span>Sugerir Senha Rápida</span>
+                        <span>Sugerir Senha</span>
                       </button>
                     </div>
                   </form>

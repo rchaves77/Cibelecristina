@@ -3,6 +3,7 @@ export type UserRole = 'admin' | 'secretaria' | 'profissional';
 export interface Perfil {
   id: string;
   nome: string;
+  usuario?: string; // Nome de usuário para login simples (ex: "admin", "cibele", "recepcao")
   email: string;
   role: UserRole;
   cor: string;

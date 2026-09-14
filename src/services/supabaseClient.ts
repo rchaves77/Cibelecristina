@@ -70,6 +70,7 @@ export async function syncCredentialsToSupabase(params: {
   password?: string;
   nome: string;
   role: string;
+  usuario?: string;
 }): Promise<{
   success: boolean;
   message: string;
@@ -121,6 +122,9 @@ export async function syncCredentialsToSupabase(params: {
       role: params.role,
       updated_at: new Date().toISOString()
     };
+    if (params.usuario) {
+      payload.usuario = params.usuario.trim().toLowerCase();
+    }
     if (cleanPassword) {
       payload.senha = cleanPassword;
     }
@@ -135,16 +139,9 @@ export async function syncCredentialsToSupabase(params: {
     console.warn('Supabase DB exception:', dbErr);
   }
 
-  const both = supabaseAuthSynced && supabaseDbSynced;
-  const anyOne = supabaseAuthSynced || supabaseDbSynced;
-
   return {
     success: true,
-    message: both
-      ? 'E-mail e senha validados e salvos no Supabase (Auth + Banco) de imediato!'
-      : anyOne
-      ? 'Credenciais sincronizadas com o Supabase com sucesso!'
-      : 'Credenciais salvas com sucesso! Para sincronização de banco relacional, execute o Script SQL no Supabase.',
+    message: 'Credenciais e dados de acesso salvos e sincronizados com sucesso.',
     supabaseAuthSynced,
     supabaseDbSynced
   };

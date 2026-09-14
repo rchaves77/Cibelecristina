@@ -138,7 +138,17 @@ export function PublicLandingPage() {
       
       {/* Barra Oficial de Conformidade Ética CFM */}
       <div className="compliance-bar" role="region" aria-label="Identificação Profissional">
-        <strong>{DOCTOR_INFO.name}</strong> — Médica, {DOCTOR_INFO.crm} | Especialista em {DOCTOR_INFO.specialty}, {DOCTOR_INFO.rqe}
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-x-2.5 sm:gap-x-3 gap-y-1 text-[11px] sm:text-xs">
+          <span className="font-semibold text-white tracking-wide">
+            {DOCTOR_INFO.fullName || DOCTOR_INFO.name}
+          </span>
+          <span className="text-[#C5A059]">•</span>
+          <span className="text-stone-300">Médica ({DOCTOR_INFO.crm})</span>
+          <span className="text-[#C5A059]">•</span>
+          <span className="text-stone-300">Especialista em {DOCTOR_INFO.specialty} ({DOCTOR_INFO.rqe})</span>
+          <span className="text-[#C5A059] hidden sm:inline">•</span>
+          <span className="text-stone-300 hidden sm:inline">{DOCTOR_INFO.clinicCrmPj}</span>
+        </div>
       </div>
 
       {/* Header Fixo de Navegação */}
@@ -152,9 +162,11 @@ export function PublicLandingPage() {
             />
             <div className="brand-titles">
               <span className="brand-name">
-                <span className="dr-prefix">{DOCTOR_INFO.prefix}</span>Cibele Cristina
+                Dra. Cibele Cristina
               </span>
-              <span className="brand-sub">{DOCTOR_INFO.specialty}</span>
+              <span className="brand-sub">
+                {DOCTOR_INFO.specialty} • {DOCTOR_INFO.crm}
+              </span>
             </div>
           </a>
 
@@ -162,7 +174,7 @@ export function PublicLandingPage() {
           <nav className="header-nav" aria-label="Navegação Principal">
             <a href="#sobre" className="nav-link">Sobre</a>
             <a href="#servicos" className="nav-link">Serviços</a>
-            <Link to="/lavagem-de-ouvido-rio-branco" className="nav-link" style={{ color: 'var(--accent-gold-dark)', fontWeight: 600 }}>
+            <Link to="/lavagem-de-ouvido-rio-branco" className="nav-link text-[#9E7B36] font-semibold hover:text-[#7A5E26]">
               Lavagem de Ouvido
             </Link>
             <a href="#conteudos-saude" className="nav-link">Blog</a>
@@ -174,29 +186,29 @@ export function PublicLandingPage() {
           <div className="header-desktop-actions">
             <Link
               to="/login"
-              className="btn-outline-gold"
-              style={{ fontSize: '0.85rem', padding: '0.55rem 0.95rem' }}
-              title="Acessar Sistema de Gestão Clínica"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-[#28574A] text-stone-700 hover:text-[#1A3C34] hover:border-[#C5A059] hover:bg-stone-50 text-xs font-semibold transition-all"
+              title="Acesso Seguro ao Sistema Clínico"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#C5A059]">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
-              Sistema Clínico
+              <span>Área Restrita</span>
             </Link>
             <a 
               href={`https://wa.me/${DOCTOR_INFO.whatsappNumber}?text=${encodeURIComponent('Olá, Dra. Cibele. Gostaria de agendar uma Teleconsulta.')}`}
               target="_blank" 
               rel="noopener noreferrer" 
               className="btn-outline-gold" 
-              style={{ fontSize: '0.85rem', padding: '0.55rem 0.95rem' }} 
+              style={{ fontSize: '0.8rem', padding: '0.5rem 0.9rem' }} 
               title="Agendar Teleconsulta Online"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
                 <line x1="12" y1="17" x2="12" y2="21"></line>
               </svg>
-              Teleconsulta
+              <span>Teleconsulta</span>
             </a>
             <a 
               href={`https://wa.me/${DOCTOR_INFO.whatsappNumber}?text=${encodeURIComponent('Olá, gostaria de agendar uma consulta com a Dra. Cibele Cristina.')}`}
@@ -204,8 +216,9 @@ export function PublicLandingPage() {
               rel="noopener noreferrer" 
               className="btn-gold" 
               aria-label="Agendar via WhatsApp"
+              style={{ fontSize: '0.85rem', padding: '0.55rem 1.1rem' }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/>
               </svg>
               <span>Agendar Consulta</span>
@@ -389,10 +402,14 @@ export function PublicLandingPage() {
             <Link
               to="/login"
               className="btn-outline-gold"
-              style={{ width: '100%', marginBottom: '0.6rem', textAlign: 'center', justifyContent: 'center' }}
+              style={{ width: '100%', marginBottom: '0.6rem', textAlign: 'center', justifyContent: 'center', gap: '0.5rem' }}
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Acessar Sistema Clínico
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Área Restrita / Login da Equipe</span>
             </Link>
             <a 
               href={`https://wa.me/${DOCTOR_INFO.whatsappNumber}?text=${encodeURIComponent('Olá, gostaria de agendar uma consulta com a Dra. Cibele Cristina.')}`}
@@ -1275,7 +1292,10 @@ export function PublicLandingPage() {
             <a href="#faq">Perguntas Frequentes</a>
             <a href="#contato">Agendamento</a>
             <Link to="/privacidade">Canal de Privacidade</Link>
-            <Link to="/login" style={{ color: '#95ACA2', fontSize: '0.85rem' }}>Sistema Clínico (Login Equipe)</Link>
+            <Link to="/login" style={{ color: '#C5A059', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span>🔒</span>
+              <span>Área Restrita / Login da Equipe</span>
+            </Link>
           </div>
 
           <div className="footer-col">

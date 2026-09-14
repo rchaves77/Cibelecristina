@@ -15,6 +15,7 @@ import { AtestadosPage } from './pages/sistema/AtestadosPage';
 import { FinanceiroPage } from './pages/sistema/FinanceiroPage';
 import { RelatoriosPage } from './pages/sistema/RelatoriosPage';
 import { PermissoesPage } from './pages/sistema/PermissoesPage';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 export default function App() {
   return (
@@ -38,69 +39,85 @@ export default function App() {
         {/* Validação Pública de Atestados e Laudos via QR Code */}
         <Route path="/validar/:id" element={<ValidarAtestadoPage />} />
 
-        {/* Sistema Clínico Operacional */}
+        {/* Sistema Clínico Operacional - Exclusivo para Usuários Autenticados */}
         <Route
           path="/sistema"
           element={
-            <SistemaLayout>
-              <AgendaDashboard />
-            </SistemaLayout>
+            <ProtectedRoute>
+              <SistemaLayout>
+                <AgendaDashboard />
+              </SistemaLayout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/sistema/taxas"
           element={
-            <SistemaLayout>
-              <TaxasPage />
-            </SistemaLayout>
+            <ProtectedRoute>
+              <SistemaLayout>
+                <TaxasPage />
+              </SistemaLayout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/sistema/pacientes"
           element={
-            <SistemaLayout>
-              <PacientesProntuariosPage />
-            </SistemaLayout>
+            <ProtectedRoute>
+              <SistemaLayout>
+                <PacientesProntuariosPage />
+              </SistemaLayout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/sistema/prescricoes"
           element={
-            <SistemaLayout>
-              <PrescricoesPage />
-            </SistemaLayout>
+            <ProtectedRoute>
+              <SistemaLayout>
+                <PrescricoesPage />
+              </SistemaLayout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/sistema/atestados"
           element={
-            <SistemaLayout>
-              <AtestadosPage />
-            </SistemaLayout>
+            <ProtectedRoute>
+              <SistemaLayout>
+                <AtestadosPage />
+              </SistemaLayout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/sistema/financeiro"
           element={
-            <SistemaLayout>
-              <FinanceiroPage />
-            </SistemaLayout>
+            <ProtectedRoute>
+              <SistemaLayout>
+                <FinanceiroPage />
+              </SistemaLayout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/sistema/relatorios"
           element={
-            <SistemaLayout>
-              <RelatoriosPage />
-            </SistemaLayout>
+            <ProtectedRoute>
+              <SistemaLayout>
+                <RelatoriosPage />
+              </SistemaLayout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/sistema/permissoes"
           element={
-            <SistemaLayout>
-              <PermissoesPage />
-            </SistemaLayout>
+            <ProtectedRoute>
+              <SistemaLayout>
+                <PermissoesPage />
+              </SistemaLayout>
+            </ProtectedRoute>
           }
         />
 
