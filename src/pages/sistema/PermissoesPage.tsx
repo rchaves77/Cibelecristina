@@ -22,7 +22,11 @@ import {
   RefreshCw,
   Database,
   Download,
-  Check
+  Check,
+  UserPlus,
+  Trash2,
+  X,
+  Key
 } from 'lucide-react';
 import { clinicalDb } from '../../services/clinicalDatabase';
 import { Perfil, GoogleSearchConsoleConfig } from '../../types/clinical';
@@ -62,6 +66,19 @@ export const PermissoesPage: React.FC = () => {
     type: 'success' | 'error';
     msg: string;
   } | null>(null);
+
+  // Estados do Modal de Criação de Novo Usuário
+  const [showNovoUsuarioModal, setShowNovoUsuarioModal] = useState(false);
+  const [newNome, setNewNome] = useState('');
+  const [newUsuario, setNewUsuario] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState<'profissional' | 'secretaria' | 'admin'>('profissional');
+  const [newSenhaInicial, setNewSenhaInicial] = useState('');
+  const [showNewSenha, setShowNewSenha] = useState(false);
+  const [newExigirTroca, setNewExigirTroca] = useState(true);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [newUserError, setNewUserError] = useState('');
+  const [newUserSuccess, setNewUserSuccess] = useState('');
 
   // Estados legados mantidos para compatibilidade
   const [novaSenha, setNovaSenha] = useState('');
@@ -278,6 +295,110 @@ export const PermissoesPage: React.FC = () => {
     setTimeout(() => setCopiedLink(false), 3000);
   };
 
+  // --- CRIAÇÃO DE NOVO USUÁRIO ---
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewUserError('');
+    setNewUserSuccess('');
+
+    if (!newNome.trim()) {
+      setNewUserError('Por favor, informe o nome completo do colaborador.');
+      return;
+    }
+    if (!newUsuario.trim()) {
+      setNewUserError('Por favor, defina um nome de usuário (login simples).');
+      return;
+    }
+    if (!newEmail.trim() || !newEmail.includes('@')) {
+      setNewUserError('Por favor, informe um endereço de e-mail válido.');
+      return;
+    }
+    if (!newSenhaInicial.trim() || newSenhaInicial.trim().length < 4) {
+      setNewUserError('A senha inicial deve possuir no mínimo 4 caracteres.');
+      return;
+    }
+
+    setIsCreatingUser(true);
+    try {
+      const created = clinicalDb.criarNovoUsuario({
+        nome: newNome.trim(),
+        usuario: newUsuario.trim().toLowerCase().replace(/\s+/g, ''),
+        email: newEmail.trim().toLowerCase(),
+        role: newRole,
+        senhaInicial: newSenhaInicial.trim(),
+        exigirTrocaPrimeiroAcesso: newExigirTroca
+      });
+
+      // Tenta sincronizar com o Supabase Cloud
+      try {
+        await syncCredentialsToSupabase({
+          perfilId: created.id,
+          email: created.email,
+          password: created.senha,
+          nome: created.nome,
+          role: created.role,
+          usuario: created.usuario
+        });
+      } catch {
+        // Segue localmente
+      }
+
+      const refreshed = clinicalDb.getPerfis();
+      setPerfis(refreshed);
+      setSelectedPerfil(created);
+
+      setNewUserSuccess(`Usuário "@${created.usuario}" criado com sucesso!`);
+      setTimeout(() => {
+        setShowNovoUsuarioModal(false);
+        setNewNome('');
+        setNewUsuario('');
+        setNewEmail('');
+        setNewSenhaInicial('');
+        setNewUserSuccess('');
+      }, 1200);
+    } catch (err: any) {
+      setNewUserError(err.message || 'Erro ao criar novo usuário.');
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  // --- EXCLUSÃO DE USUÁRIO ---
+  const handleDeleteUser = (perfilId: string) => {
+    const target = perfis.find(p => p.id === perfilId);
+    if (!target) return;
+    if (target.id === 'perfil-master') {
+      alert('O perfil Master de diretoria não pode ser removido.');
+      return;
+    }
+
+    if (window.confirm(`Tem certeza que deseja remover o usuário "${target.nome}" (@${target.usuario})? Esta ação excluirá permanentemente suas credenciais de acesso.`)) {
+      try {
+        clinicalDb.deletePerfil(perfilId);
+        const refreshed = clinicalDb.getPerfis();
+        setPerfis(refreshed);
+        if (refreshed.length > 0) {
+          setSelectedPerfil(refreshed[0]);
+        }
+      } catch (err: any) {
+        alert(err.message || 'Erro ao remover usuário.');
+      }
+    }
+  };
+
+  // --- ALTERAR EXIGÊNCIA DE PRIMEIRO ACESSO ---
+  const handleToggleFirstAccess = (perfil: Perfil) => {
+    const nextVal = !perfil.primeiro_acesso;
+    const updated: Perfil = {
+      ...perfil,
+      primeiro_acesso: nextVal
+    };
+    clinicalDb.savePerfil(updated);
+    const refreshed = clinicalDb.getPerfis();
+    setPerfis(refreshed);
+    setSelectedPerfil(updated);
+  };
+
   // --- CONFIGURAÇÃO GOOGLE SEARCH CONSOLE ---
   const handleSaveGSC = (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,12 +506,27 @@ export const PermissoesPage: React.FC = () => {
           {/* COLUNA ESQUERDA: LISTA DE PERFIS */}
           <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-sm p-4 space-y-3 h-fit">
             <div className="flex items-center justify-between border-b border-stone-100 pb-2">
-              <h3 className="font-serif font-bold text-sm text-stone-800">
-                Colaboradores Cadastrados
-              </h3>
-              <span className="text-[11px] font-semibold text-[#1A3C34] bg-[#1A3C34]/10 px-2 py-0.5 rounded-full">
-                {perfis.length} perfis
-              </span>
+              <div>
+                <h3 className="font-serif font-bold text-sm text-stone-800">
+                  Colaboradores Cadastrados
+                </h3>
+                <span className="text-[11px] text-stone-500">
+                  {perfis.length} perfis ativos
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNovoUsuarioModal(true);
+                  setNewUserError('');
+                  setNewUserSuccess('');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
+              >
+                <UserPlus size={14} className="text-[#C5A059]" />
+                <span>Novo Usuário</span>
+              </button>
             </div>
 
             <div className="space-y-2">
@@ -411,24 +547,28 @@ export const PermissoesPage: React.FC = () => {
                         : 'border-stone-200 hover:bg-stone-50'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-2 truncate">
                         <div
-                          className="w-2.5 h-2.5 rounded-full"
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: p.cor || '#1A3C34' }}
                         />
-                        <span className="text-xs text-stone-900 font-medium">{p.nome}</span>
+                        <span className="text-xs text-stone-900 font-medium truncate">{p.nome}</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-[#C5A059]/20 text-[#8F7030]">
-                        {p.role}
+                      <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-[#C5A059]/20 text-[#8F7030] shrink-0">
+                        {p.role === 'admin' ? 'Geral' : p.role === 'secretaria' ? 'Administrativo' : 'Profissional'}
                       </span>
                     </div>
 
-                    <div className="text-[11px] text-stone-500 mt-1 flex items-center justify-between">
+                    <div className="text-[11px] text-stone-500 mt-1 flex items-center justify-between gap-1">
                       <span className="truncate">
                         <strong className="text-stone-800 font-mono">@{p.usuario || p.id.replace('perfil-', '')}</strong> • {p.email}
                       </span>
-                      {p.senha && (
+                      {p.primeiro_acesso ? (
+                        <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-semibold border border-amber-200 shrink-0">
+                          1º Acesso Pendente
+                        </span>
+                      ) : p.senha && (
                         <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0">
                           Senha ativa
                         </span>
@@ -452,7 +592,7 @@ export const PermissoesPage: React.FC = () => {
                 <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-sm"
+                      className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-sm shrink-0"
                       style={{ backgroundColor: selectedPerfil.cor || '#1A3C34' }}
                     >
                       {selectedPerfil.nome.substring(0, 2).toUpperCase()}
@@ -469,17 +609,38 @@ export const PermissoesPage: React.FC = () => {
                         <span>{selectedPerfil.email}</span>
                         <span>•</span>
                         <span className="uppercase font-semibold text-[#8F7030]">
-                          {selectedPerfil.role}
+                          {selectedPerfil.role === 'admin' ? 'Geral' : selectedPerfil.role === 'secretaria' ? 'Administrativo' : 'Profissional'}
                         </span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800">
-                      <CheckCircle2 size={13} className="text-emerald-600" />
-                      <span>Acesso Habilitado</span>
-                    </span>
+                  <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFirstAccess(selectedPerfil)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                        selectedPerfil.primeiro_acesso
+                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                          : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                      }`}
+                      title="Exigir que este colaborador altere a senha no primeiro/próximo login"
+                    >
+                      <Key size={13} className={selectedPerfil.primeiro_acesso ? 'text-amber-700' : 'text-stone-500'} />
+                      <span>{selectedPerfil.primeiro_acesso ? '1º Acesso Ativado' : 'Exigir Troca no 1º Acesso'}</span>
+                    </button>
+
+                    {selectedPerfil.id !== 'perfil-master' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteUser(selectedPerfil.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 transition-colors cursor-pointer"
+                        title="Remover este usuário do sistema"
+                      >
+                        <Trash2 size={13} />
+                        <span>Excluir</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1244,6 +1405,239 @@ export const PermissoesPage: React.FC = () => {
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* MODAL DE CRIAÇÃO DE NOVO USUÁRIO */}
+      {showNovoUsuarioModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-[#1A3C34] text-[#C5A059] flex items-center justify-center shadow-sm">
+                  <UserPlus size={20} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Criar Novo Usuário
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Cadastre novos colaboradores, defina a senha inicial e o perfil de acesso.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNovoUsuarioModal(false)}
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {newUserError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2.5">
+                <AlertCircle size={16} className="text-red-600 shrink-0" />
+                <span>{newUserError}</span>
+              </div>
+            )}
+
+            {newUserSuccess && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5">
+                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                <span>{newUserSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-stone-700 block mb-1">
+                  Nome Completo do Colaborador *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newNome}
+                  onChange={(e) => setNewNome(e.target.value)}
+                  placeholder="ex: Dr. Fernando Souza ou Mariana Santos"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34] font-medium text-stone-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-stone-700 block mb-1">
+                    Nome de Usuário (Login) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-stone-400 font-mono text-xs font-bold">@</span>
+                    <input
+                      type="text"
+                      required
+                      value={newUsuario}
+                      onChange={(e) => setNewUsuario(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                      placeholder="ex: fernando, mariana"
+                      className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-stone-300 text-xs font-mono font-semibold text-stone-800 focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-stone-700 block mb-1">
+                    E-mail Cadastrado *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="exemplo@medicinarte.com.br"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34] font-medium text-stone-800"
+                  />
+                </div>
+              </div>
+
+              {/* SELEÇÃO DO PERFIL DE ACESSO */}
+              <div>
+                <label className="text-xs font-semibold text-stone-700 block mb-1.5">
+                  Perfil de Acesso (Função) *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                      newRole === 'profissional'
+                        ? 'border-[#1A3C34] bg-[#1A3C34]/5 ring-1 ring-[#1A3C34]'
+                        : 'border-stone-200 hover:bg-stone-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="userRole"
+                      value="profissional"
+                      checked={newRole === 'profissional'}
+                      onChange={() => setNewRole('profissional')}
+                      className="sr-only"
+                    />
+                    <div className="text-xs font-bold text-stone-900">Profissional</div>
+                    <div className="text-[10px] text-stone-500 mt-0.5">Médica / Saúde</div>
+                  </label>
+
+                  <label
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                      newRole === 'secretaria'
+                        ? 'border-[#C5A059] bg-[#C5A059]/10 ring-1 ring-[#C5A059]'
+                        : 'border-stone-200 hover:bg-stone-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="userRole"
+                      value="secretaria"
+                      checked={newRole === 'secretaria'}
+                      onChange={() => setNewRole('secretaria')}
+                      className="sr-only"
+                    />
+                    <div className="text-xs font-bold text-stone-900">Administrativo</div>
+                    <div className="text-[10px] text-stone-500 mt-0.5">Recepção / Agenda</div>
+                  </label>
+
+                  <label
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                      newRole === 'admin'
+                        ? 'border-[#142E28] bg-[#142E28]/5 ring-1 ring-[#142E28]'
+                        : 'border-stone-200 hover:bg-stone-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="userRole"
+                      value="admin"
+                      checked={newRole === 'admin'}
+                      onChange={() => setNewRole('admin')}
+                      className="sr-only"
+                    />
+                    <div className="text-xs font-bold text-stone-900">Geral</div>
+                    <div className="text-[10px] text-stone-500 mt-0.5">Administrador Geral</div>
+                  </label>
+                </div>
+              </div>
+
+              {/* SENHA INICIAL */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-stone-700">
+                    Senha Inicial de Acesso *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sugerida = 'Med' + Math.floor(1000 + Math.random() * 9000);
+                      setNewSenhaInicial(sugerida);
+                      setShowNewSenha(true);
+                    }}
+                    className="text-[10px] text-[#C5A059] font-bold hover:underline cursor-pointer"
+                  >
+                    Sugerir Senha
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock size={15} className="absolute left-3 top-3 text-stone-400" />
+                  <input
+                    type={showNewSenha ? 'text' : 'password'}
+                    required
+                    value={newSenhaInicial}
+                    onChange={(e) => setNewSenhaInicial(e.target.value)}
+                    placeholder="Digite a senha temporária inicial"
+                    className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-stone-300 text-xs font-medium focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewSenha(!showNewSenha)}
+                    className="absolute right-3 top-3 text-stone-400 hover:text-stone-600 cursor-pointer"
+                  >
+                    {showNewSenha ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* CHECKBOX PRIMEIRO ACESSO */}
+              <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newExigirTroca}
+                    onChange={(e) => setNewExigirTroca(e.target.checked)}
+                    className="mt-0.5 rounded border-stone-300 text-[#1A3C34] focus:ring-0"
+                  />
+                  <div>
+                    <span className="text-xs font-semibold text-stone-800 block">
+                      Exigir alteração de senha no primeiro acesso
+                    </span>
+                    <span className="text-[11px] text-stone-500 block leading-snug">
+                      Ao fazer login pela primeira vez, o colaborador verá um pop-up obrigatório para cadastrar sua nova senha pessoal.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNovoUsuarioModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingUser}
+                  className="px-5 py-2.5 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {isCreatingUser ? 'Criando Usuário...' : 'Cadastrar Novo Usuário'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

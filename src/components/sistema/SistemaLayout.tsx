@@ -23,6 +23,7 @@ import { clinicalDb } from '../../services/clinicalDatabase';
 import { Perfil } from '../../types/clinical';
 import { DOCTOR_INFO } from '../../data/medicinarteData';
 import { CidSearchModal } from '../common/CidSearchModal';
+import { PrimeiroAcessoModal } from '../common/PrimeiroAcessoModal';
 
 interface SistemaLayoutProps {
   children: React.ReactNode;
@@ -442,6 +443,17 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
         isOpen={showCidModal}
         onClose={() => setShowCidModal(false)}
       />
+
+      {/* POP-UP MANDATÓRIO DE PRIMEIRO ACESSO (TROCA DE SENHA) */}
+      {currentUser.primeiro_acesso && (
+        <PrimeiroAcessoModal
+          currentUser={currentUser}
+          onSuccess={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            setPerfis(clinicalDb.getPerfis());
+          }}
+        />
+      )}
     </div>
   );
 };

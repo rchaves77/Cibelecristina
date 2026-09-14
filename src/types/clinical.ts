@@ -17,6 +17,7 @@ export interface Perfil {
   crm?: string;
   rqe?: string;
   senha?: string;
+  primeiro_acesso?: boolean;
   senha_alterada_em?: string;
   reset_token?: string;
   reset_token_expira?: string;

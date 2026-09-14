@@ -750,6 +750,123 @@ class ClinicalDatabaseService {
     return res.perfil;
   }
 
+  criarNovoUsuario(dados: {
+    nome: string;
+    usuario: string;
+    email: string;
+    role: UserRole;
+    senhaInicial: string;
+    exigirTrocaPrimeiroAcesso?: boolean;
+  }): Perfil {
+    const perfis = this.getPerfis();
+    const cleanUsuario = dados.usuario.trim().toLowerCase().replace(/\s+/g, '');
+    const cleanEmail = dados.email.trim().toLowerCase();
+    const cleanNome = dados.nome.trim();
+    const cleanSenha = dados.senhaInicial.trim();
+
+    if (!cleanNome) {
+      throw new Error('Informe o nome completo do colaborador.');
+    }
+    if (!cleanUsuario) {
+      throw new Error('Informe o nome de usuário (login simples).');
+    }
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new Error('Informe um endereço de e-mail válido.');
+    }
+    if (!cleanSenha || cleanSenha.length < 4) {
+      throw new Error('A senha inicial deve possuir no mínimo 4 caracteres.');
+    }
+
+    if (perfis.some(p => (p.usuario || '').toLowerCase() === cleanUsuario)) {
+      throw new Error(`O nome de usuário "@${cleanUsuario}" já está em uso por outro cadastro.`);
+    }
+    if (perfis.some(p => p.email.toLowerCase() === cleanEmail)) {
+      throw new Error(`O e-mail "${cleanEmail}" já está cadastrado para outro usuário.`);
+    }
+
+    let cor = '#142E28';
+    let permissao_financeiro = true;
+    let permissao_agendar = true;
+    let permissao_confirmacao_amanha = true;
+
+    if (dados.role === 'secretaria') {
+      cor = '#C5A059';
+      permissao_financeiro = false;
+    } else if (dados.role === 'profissional') {
+      cor = '#1A3C34';
+      permissao_financeiro = true;
+    } else if (dados.role === 'admin') {
+      cor = '#142E28';
+      permissao_financeiro = true;
+    }
+
+    const newPerfil: Perfil = {
+      id: `perfil-${Date.now()}`,
+      nome: cleanNome,
+      usuario: cleanUsuario,
+      email: cleanEmail,
+      role: dados.role,
+      cor,
+      permissao_financeiro,
+      permissao_agendar,
+      permissao_confirmacao_amanha,
+      dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+      hora_inicio: '08:00',
+      hora_fim: '18:00',
+      senha: cleanSenha,
+      primeiro_acesso: dados.exigirTrocaPrimeiroAcesso ?? true,
+      senha_alterada_em: new Date().toISOString()
+    };
+
+    perfis.push(newPerfil);
+    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+    return newPerfil;
+  }
+
+  alterarSenhaPrimeiroAcesso(perfilId: string, novaSenha: string): Perfil {
+    const perfis = this.getPerfis();
+    const idx = perfis.findIndex(p => p.id === perfilId);
+    if (idx === -1) {
+      throw new Error('Perfil não localizado no sistema.');
+    }
+    if (!novaSenha || novaSenha.trim().length < 4) {
+      throw new Error('A nova senha deve possuir pelo menos 4 caracteres.');
+    }
+
+    const updated: Perfil = {
+      ...perfis[idx],
+      senha: novaSenha.trim(),
+      primeiro_acesso: false,
+      senha_alterada_em: new Date().toISOString()
+    };
+
+    perfis[idx] = updated;
+    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+
+    const active = this.getActiveUser();
+    if (active && active.id === perfilId) {
+      this.setActiveUser(updated);
+    }
+
+    return updated;
+  }
+
+  deletePerfil(perfilId: string): void {
+    if (perfilId === 'perfil-master') {
+      throw new Error('O perfil Master de diretoria não pode ser removido.');
+    }
+    let perfis = this.getPerfis();
+    perfis = perfis.filter(p => p.id !== perfilId);
+    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+
+    const active = this.getActiveUser();
+    if (active && active.id === perfilId) {
+      if (perfis.length > 0) {
+        this.setActiveUser(perfis[0]);
+      }
+    }
+  }
+
   gerarResetSenha(emailOuId: string): { success: boolean; token: string; link: string; perfil?: Perfil; mensagemPreview: string } {
     const perfis = this.getPerfis();
     const cleanQuery = emailOuId.trim().toLowerCase();
