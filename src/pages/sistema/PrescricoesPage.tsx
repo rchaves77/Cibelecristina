@@ -506,7 +506,7 @@ export const PrescricoesPage: React.FC = () => {
                   className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
                 >
                   <option value="Lavagem Otológica">Lavagem Otológica</option>
-                  <option value="Check-up Racional">Check-up Racional</option>
+                  <option value="Check-up Individualizado">Check-up Individualizado</option>
                   <option value="Doenças Crônicas">Doenças Crônicas</option>
                   <option value="Saúde Mental">Saúde Mental</option>
                   <option value="Geral">Geral</option>

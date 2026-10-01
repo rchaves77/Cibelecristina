@@ -113,7 +113,9 @@ export async function syncCredentialsToSupabase(params: {
     }
   }
 
-  // 2. Grava ou atualiza imediatamente na tabela 'perfis' do Supabase
+  // 2. Grava ou atualiza os dados do perfil na tabela 'perfis' do Supabase
+  // OBS: Não enviamos o campo 'senha' para a tabela pública 'perfis', pois no Supabase
+  // a autenticação de senha é gerida com segurança criptografada pelo Supabase Auth (auth.users).
   try {
     const payload: Record<string, any> = {
       id: params.perfilId,
@@ -125,18 +127,32 @@ export async function syncCredentialsToSupabase(params: {
     if (params.usuario) {
       payload.usuario = params.usuario.trim().toLowerCase();
     }
-    if (cleanPassword) {
-      payload.senha = cleanPassword;
-    }
 
     const { error: dbError } = await supabase.from('perfis').upsert(payload, { onConflict: 'id' });
     if (!dbError) {
       supabaseDbSynced = true;
     } else {
-      console.warn('Supabase DB notice:', dbError.message);
+      // Se a tabela remota não possuir colunas opcionais como 'usuario' ou 'updated_at',
+      // faz um fallback seguro com os campos canônicos essenciais (id, nome, email, role)
+      if (dbError.message?.includes('column') || dbError.code === 'PGRST204') {
+        const minimalPayload = {
+          id: params.perfilId,
+          nome: params.nome,
+          email: cleanEmail,
+          role: params.role
+        };
+        const { error: retryError } = await supabase.from('perfis').upsert(minimalPayload, { onConflict: 'id' });
+        if (!retryError) {
+          supabaseDbSynced = true;
+        } else {
+          console.info('Supabase DB sync notice (tabela remota em configuração):', retryError.message);
+        }
+      } else {
+        console.info('Supabase DB sync notice:', dbError.message);
+      }
     }
   } catch (dbErr) {
-    console.warn('Supabase DB exception:', dbErr);
+    console.info('Supabase DB sync exception:', dbErr);
   }
 
   return {
@@ -160,6 +176,7 @@ CREATE TABLE IF NOT EXISTS public.perfis (
   id TEXT PRIMARY KEY,
   nome TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
+  usuario TEXT,
   senha TEXT DEFAULT 'admin123',
   role TEXT NOT NULL DEFAULT 'secretaria',
   cor TEXT DEFAULT '#1A3C34',
@@ -174,6 +191,12 @@ CREATE TABLE IF NOT EXISTS public.perfis (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Garante retrocompatibilidade caso a tabela já tenha sido criada anteriormente sem estas colunas
+ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS usuario TEXT;
+ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS senha TEXT DEFAULT 'admin123';
+ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS cor TEXT DEFAULT '#1A3C34';
+ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- Inserção do Usuário Master e da Equipe
 INSERT INTO public.perfis (id, nome, email, senha, role, permissao_financeiro, permissao_agendar, permissao_confirmacao_amanha)

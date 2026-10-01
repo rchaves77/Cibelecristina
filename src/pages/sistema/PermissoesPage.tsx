@@ -38,11 +38,14 @@ import {
   SUPABASE_URL, 
   SUPABASE_SQL_SCHEMA 
 } from '../../services/supabaseClient';
+import { SegurancaLgpdTab } from '../../components/sistema/SegurancaLgpdTab';
+import { AuditoriaTab } from '../../components/sistema/AuditoriaTab';
 
 export const PermissoesPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'perfis' | 'gsc' | 'supabase'>('perfis');
+  const [activeTab, setActiveTab] = useState<'perfis' | 'seguranca-lgpd' | 'auditoria' | 'gsc' | 'supabase'>('perfis');
   const [perfis, setPerfis] = useState<Perfil[]>([]);
   const [selectedPerfil, setSelectedPerfil] = useState<Perfil | null>(null);
+  const [permissaoFeedback, setPermissaoFeedback] = useState<string | null>(null);
 
   // Estados do Supabase Cloud
   const [supabaseStatus, setSupabaseStatus] = useState<{
@@ -246,6 +249,30 @@ export const PermissoesPage: React.FC = () => {
     } finally {
       setIsSavingCredenciais(false);
     }
+  };
+
+  // --- ALTERAR PERMISSÃO DE ACESSO OU 2FA (RBAC) ---
+  const handleTogglePermissao = (campo: 'permissao_prontuario_clinico' | 'permissao_prescricoes' | 'permissao_atestados' | 'permissao_financeiro' | 'two_factor_enabled') => {
+    if (!selectedPerfil) return;
+    const novoValor = selectedPerfil[campo] === undefined ? false : !selectedPerfil[campo];
+    const updated: Perfil = {
+      ...selectedPerfil,
+      [campo]: novoValor
+    };
+    clinicalDb.updatePerfil(updated);
+    setSelectedPerfil(updated);
+    setPerfis(clinicalDb.getPerfis());
+
+    const labels: Record<string, string> = {
+      permissao_prontuario_clinico: 'Acesso ao Prontuário Clínico (SOAP / CID)',
+      permissao_prescricoes: 'Emissão de Prescrições Médicas',
+      permissao_atestados: 'Emissão de Atestados com QR Code',
+      permissao_financeiro: 'Módulo Financeiro e Livro Caixa',
+      two_factor_enabled: 'Autenticação em Dois Fatores (2FA)'
+    };
+
+    setPermissaoFeedback(`Permissão "${labels[campo] || campo}" definida como ${novoValor ? 'Liberada/Ativada ✓' : 'Bloqueada/Desativada 🔒'} para ${updated.nome}!`);
+    setTimeout(() => setPermissaoFeedback(null), 4000);
   };
 
   // --- ALTERAÇÃO DIRETA DE SENHA (FÁCIL, SEM BUROCRACIA) ---
@@ -459,42 +486,66 @@ export const PermissoesPage: React.FC = () => {
         </div>
 
         {/* ABAS */}
-        <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200 shrink-0">
+        <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200 shrink-0 flex-wrap gap-1">
           <button
             type="button"
             onClick={() => setActiveTab('perfis')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'perfis'
                 ? 'bg-white text-[#1A3C34] shadow-sm'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             <ShieldCheck size={15} />
-            <span>Perfis, Senhas & Grade</span>
+            <span>Perfis & Acessos</span>
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('gsc')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'gsc'
-                ? 'bg-white text-[#1A3C34] shadow-sm'
+            onClick={() => setActiveTab('seguranca-lgpd')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'seguranca-lgpd'
+                ? 'bg-white text-[#1A3C34] shadow-sm font-bold'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
-            <Globe size={15} className="text-[#C5A059]" />
-            <span>Google Search Console</span>
+            <Lock size={15} className="text-[#C5A059]" />
+            <span>Segurança & LGPD (Respostas Dra. Cibele)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('auditoria')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'auditoria'
+                ? 'bg-white text-[#1A3C34] shadow-sm font-bold'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Clock size={15} className="text-purple-600" />
+            <span>Trilha de Auditoria & Logs</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('supabase')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'supabase'
                 ? 'bg-white text-[#1A3C34] shadow-sm'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             <Database size={15} className="text-emerald-600" />
-            <span>Banco de Dados & Nuvem</span>
+            <span>Banco Cloud & Backups</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('gsc')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'gsc'
+                ? 'bg-white text-[#1A3C34] shadow-sm'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Globe size={15} className="text-stone-500" />
+            <span>Google Search Console</span>
           </button>
         </div>
       </div>
@@ -901,6 +952,164 @@ export const PermissoesPage: React.FC = () => {
                   )}
                 </div>
 
+                {/* MÓDULO NOVO: MATRIZ DE PERMISSÕES, SIGILO MÉDICO & 2FA (RBAC) */}
+                <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck size={18} className="text-[#1A3C34]" />
+                        <h4 className="font-serif font-bold text-sm text-stone-900">
+                          Matriz de Permissões, Sigilo Clínico & 2FA (RBAC)
+                        </h4>
+                      </div>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Configure os privilégios deste colaborador conforme as diretrizes éticas do CFM e da LGPD.
+                      </p>
+                    </div>
+                  </div>
+
+                  {permissaoFeedback && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in">
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      <span>{permissaoFeedback}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {/* SIGILO DO PRONTUÁRIO CLÍNICO (SOAP / CID) */}
+                    <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50/70 flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-xs text-stone-900">
+                            Acesso ao Prontuário Clínico (SOAP, CID-10/11 & Diagnósticos)
+                          </span>
+                          {selectedPerfil.role === 'secretaria' && (
+                            <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-900 px-2 py-0.5 rounded">
+                              Sigilo Médico Ativo
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
+                          Quando desativado, o colaborador visualiza apenas a agenda e a ficha de contato do paciente. O conteúdo do SOAP e as hipóteses diagnósticas são totalmente ocultados por sigilo profissional.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePermissao('permissao_prontuario_clinico')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
+                          selectedPerfil.permissao_prontuario_clinico !== false
+                            ? 'bg-[#1A3C34] text-white'
+                            : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                        }`}
+                      >
+                        {selectedPerfil.permissao_prontuario_clinico !== false ? 'Liberado ✓' : 'Bloqueado 🔒'}
+                      </button>
+                    </div>
+
+                    {/* PRESCRIÇÕES MÉDICAS */}
+                    <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50/70 flex items-start justify-between gap-4">
+                      <div>
+                        <span className="font-semibold text-xs text-stone-900 block">
+                          Emissão de Prescrições & Pedidos de Exame
+                        </span>
+                        <p className="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
+                          Permite redigir receitas médicas e pedidos de exames com templates. Restrito exclusivamente à médica.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePermissao('permissao_prescricoes')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
+                          selectedPerfil.permissao_prescricoes
+                            ? 'bg-[#1A3C34] text-white'
+                            : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                        }`}
+                      >
+                        {selectedPerfil.permissao_prescricoes ? 'Liberado ✓' : 'Bloqueado 🔒'}
+                      </button>
+                    </div>
+
+                    {/* ATESTADOS COM QR CODE */}
+                    <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50/70 flex items-start justify-between gap-4">
+                      <div>
+                        <span className="font-semibold text-xs text-stone-900 block">
+                          Emissão de Atestados & Laudos com QR Code
+                        </span>
+                        <p className="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
+                          Permite emitir atestados médicos oficiais com hash e validação pública. Restrito à médica.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePermissao('permissao_atestados')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
+                          selectedPerfil.permissao_atestados
+                            ? 'bg-[#1A3C34] text-white'
+                            : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                        }`}
+                      >
+                        {selectedPerfil.permissao_atestados ? 'Liberado ✓' : 'Bloqueado 🔒'}
+                      </button>
+                    </div>
+
+                    {/* FINANCEIRO */}
+                    <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50/70 flex items-start justify-between gap-4">
+                      <div>
+                        <span className="font-semibold text-xs text-stone-900 block">
+                          Gestão Financeira & Livro Caixa
+                        </span>
+                        <p className="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
+                          Acesso aos relatórios de faturamento, liquidação de consultas, despesas e repasses.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePermissao('permissao_financeiro')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
+                          selectedPerfil.permissao_financeiro
+                            ? 'bg-[#1A3C34] text-white'
+                            : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                        }`}
+                      >
+                        {selectedPerfil.permissao_financeiro ? 'Liberado ✓' : 'Bloqueado 🔒'}
+                      </button>
+                    </div>
+
+                    {/* AUTENTICAÇÃO EM DOIS FATORES (2FA) */}
+                    <div className="p-3.5 rounded-xl border border-[#C5A059]/40 bg-[#C5A059]/10 flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs text-stone-900">
+                            Autenticação em Dois Fatores (2FA - TOTP)
+                          </span>
+                          <span className="text-[10px] font-bold uppercase bg-[#C5A059]/30 text-[#6B501B] px-2 py-0.5 rounded">
+                            Proteção Forte
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-600 mt-0.5 leading-relaxed">
+                          Exige código de verificação dinâmico gerado no celular (Google Authenticator ou Microsoft Authenticator) em cada login neste perfil.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePermissao('two_factor_enabled')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
+                          selectedPerfil.two_factor_enabled
+                            ? 'bg-[#C5A059] text-[#142E28] font-bold shadow-xs'
+                            : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                        }`}
+                      >
+                        {selectedPerfil.two_factor_enabled ? '2FA Ativado ✓' : 'Ativar 2FA'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* MÓDULO 3: GRADE HORÁRIA DE ATENDIMENTO */}
                 <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
                   <div className="flex items-center justify-between border-b border-stone-100 pb-3">
@@ -996,6 +1205,16 @@ export const PermissoesPage: React.FC = () => {
           </div>
 
         </div>
+      )}
+
+      {/* ABA: SEGURANÇA & LGPD (DOSSIÊ COMPLETO E RESPOSTAS DRA. CIBELE) */}
+      {activeTab === 'seguranca-lgpd' && (
+        <SegurancaLgpdTab />
+      )}
+
+      {/* ABA: TRILHA DE AUDITORIA & LOGS DE ACESSO */}
+      {activeTab === 'auditoria' && (
+        <AuditoriaTab />
       )}
 
       {/* ABA 2: GOOGLE SEARCH CONSOLE & SEO LOCAL */}

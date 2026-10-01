@@ -23,13 +23,13 @@ export const AboutDoctor: React.FC<AboutDoctorProps> = ({
         <div className="max-w-3xl mx-auto text-center space-y-3 mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#DCE7E5]/40 border border-[#DCE7E5] text-[#2D5A54] text-[11px] uppercase tracking-[0.2em] font-bold">
             <Stethoscope className="w-3.5 h-3.5 text-[#2D5A54]" />
-            <span>Perfil Profissional • Filosofia de Cuidado</span>
+            <span>Perfil Profissional • Medicina de Família</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-serif text-[#1A3A36] tracking-tight">
-            Conheça a Dra. Cibele Cristina Cunha Brígido
+            DRA. CIBELE CRISTINA
           </h2>
-          <p className="text-base sm:text-lg text-[#4A5568] leading-relaxed font-light">
-            Uma trajetória de excelência médica dedicada à medicina humanizada, atenção primária e ao acolhimento contínuo de famílias em todas as fases da vida.
+          <p className="text-sm sm:text-base text-[#2D5A54] font-semibold tracking-wide">
+            CRM-AC 1810 | RQE 1078 • Especialista em Medicina de Família e Comunidade
           </p>
         </div>
 
@@ -39,16 +39,32 @@ export const AboutDoctor: React.FC<AboutDoctorProps> = ({
           {/* Left Column: Doctor Story & Philosophy */}
           <div className="lg:col-span-7 space-y-6">
             <div className="prose prose-slate max-w-none text-[#4A5568] space-y-4 leading-relaxed font-light text-base sm:text-lg">
+              <h3 className="text-xl font-serif text-[#1A3A36] italic font-semibold">
+                Formação e experiência profissional
+              </h3>
+
               <p>
-                Com formação médica internacional na renomada <strong className="text-[#1A3A36] font-semibold">Universidad de Cádiz (2008), na Espanha</strong>, revalidada pela <strong className="text-[#1A3A36] font-semibold">Universidade Federal da Paraíba (UFPB)</strong> e especialização com pós-graduação em <strong className="text-[#1A3A36] font-semibold">Saúde da Família pela Universidade Federal de Pelotas (UFPeL)</strong>, a Dra. Cibele Cristina alia sólido rigor científico a uma prática clínica profundamente empática.
+                Graduada em Medicina em Cádiz, Espanha, a Dra. Cibele Cristina construiu parte de sua trajetória profissional na Espanha e em Portugal, vivenciando diferentes realidades e formas de cuidado em saúde.
               </p>
 
-              <blockquote className="p-5 bg-white border-l-2 border-[#2D5A54] rounded-r-xl italic font-serif text-[#2D5A54] my-5 text-base sm:text-lg leading-relaxed shadow-xs">
-                "A verdadeira medicina não fragmenta a pessoa em queixas isoladas. Quando atendo um paciente, escuto sua história, compreendo seu núcleo familiar e construo junto com ele um caminho de saúde e bem-estar que cabe na sua realidade."
-              </blockquote>
+              <p>
+                No Brasil, atua no Sistema Único de Saúde (SUS) desde 2013, acumulando mais de uma década de experiência no cuidado de pessoas e famílias em diferentes contextos e fases da vida.
+              </p>
 
-              <p className="text-[#4A5568]">
-                Com uma sólida e ampla prática clínica consolidada no manejo de casos clínicos complexos, medicina interna e urgências, a Dra. Cibele acumula uma vivência técnica indispensável para diagnósticos precisos e planos de cuidado resolutivos. Como <strong className="text-[#1A3A36] font-semibold">professora de Práticas de Integração em Saúde (PIS) do Centro Universitário Uninorte</strong>, dedica-se também à formação de novos médicos com ênfase na ética médica, na clínica integral e na comunicação compassiva centrada na pessoa.
+              <p>
+                Especialista em Medicina de Família e Comunidade, sua prática une a experiência adquirida ao longo dos anos a um cuidado próximo, individualizado e baseado em evidências — da prevenção e diagnóstico ao tratamento e acompanhamento contínuo da saúde.
+              </p>
+
+              <p>
+                Acredita que uma boa medicina começa pela escuta. Por isso, cada consulta é conduzida com acolhimento, clareza e respeito à realidade de cada paciente.
+              </p>
+
+              <p className="text-[#1A3A36] font-medium">
+                Mais do que tratar doenças, seu propósito é cuidar de pessoas.
+              </p>
+
+              <p className="text-[#C5A059] font-serif font-bold text-xl italic">
+                Gente como a gente.
               </p>
             </div>
 

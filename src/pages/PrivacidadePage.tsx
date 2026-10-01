@@ -146,6 +146,7 @@ export function PrivacidadePage() {
                 Para exercer seus direitos de titular ou esclarecer qualquer dúvida sobre o tratamento de suas informações, você pode entrar em contato diretamente conosco:
               </p>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
+                <strong style={{ fontSize: '1.05rem', color: 'var(--accent)' }}>Clínica Medicinarte</strong><br />
                 <strong>MEDICINARTE SERVIÇOS MÉDICOS LTDA</strong><br />
                 📍 Rua Antunes de Alencar, 152 — Bairro Bosque, Rio Branco/AC • CEP: 69900-364<br />
                 📱 WhatsApp: <strong>{DOCTOR_INFO.phone}</strong><br />

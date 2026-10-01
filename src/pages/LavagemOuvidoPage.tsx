@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DOCTOR_INFO } from '../data/medicinarteData';
+import { trackWhatsAppClick, trackProcedureInteraction } from '../utils/analytics';
 
 export function LavagemOuvidoPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -70,6 +71,10 @@ export function LavagemOuvidoPage() {
             rel="noopener noreferrer" 
             className="btn-gold header-cta"
             aria-label="Agendar Lavagem no WhatsApp"
+            onClick={() => {
+              trackWhatsAppClick({ location: 'lavagem_header', service: 'Lavagem Otológica', label: 'Agendar no WhatsApp Header' });
+              trackProcedureInteraction({ procedureName: 'Lavagem de Ouvido', source: 'lavagem_page_header' });
+            }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/>
@@ -109,6 +114,10 @@ export function LavagemOuvidoPage() {
               rel="noopener noreferrer" 
               className="btn-gold" 
               style={{ padding: '0.9rem 2rem', fontSize: '1.05rem', boxShadow: '0 6px 20px rgba(197, 160, 89, 0.4)' }}
+              onClick={() => {
+                trackWhatsAppClick({ location: 'lavagem_hero_btn', service: 'Lavagem Otológica', label: 'Agendar Avaliação Hero' });
+                trackProcedureInteraction({ procedureName: 'Lavagem de Ouvido', source: 'lavagem_page_hero' });
+              }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/>
@@ -257,6 +266,10 @@ export function LavagemOuvidoPage() {
               rel="noopener noreferrer" 
               className="btn-gold" 
               style={{ display: 'inline-flex', padding: '0.8rem 1.75rem' }}
+              onClick={() => {
+                trackWhatsAppClick({ location: 'lavagem_preparo_btn', service: 'Lavagem Otológica', label: 'Tirar Dúvidas Preparo' });
+                trackProcedureInteraction({ procedureName: 'Lavagem de Ouvido', source: 'lavagem_preparo_section' });
+              }}
             >
               Tirar Dúvidas sobre o Preparo no WhatsApp
             </a>
@@ -276,7 +289,10 @@ export function LavagemOuvidoPage() {
           </p>
 
           <div style={{ background: '#F8F9FA', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.75rem', display: 'inline-block', maxWidth: '600px', width: '100%', marginBottom: '1.5rem' }}>
-            <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '0.5rem' }}>
+            <p style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '0.2rem' }}>
+              Clínica Medicinarte
+            </p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.65rem' }}>
               MEDICINARTE SERVIÇOS MÉDICOS LTDA
             </p>
             <p style={{ fontSize: '0.95rem', color: '#2D3E38', lineHeight: 1.6, marginBottom: '0.75rem' }}>
@@ -347,6 +363,10 @@ export function LavagemOuvidoPage() {
             rel="noopener noreferrer" 
             className="btn-gold" 
             style={{ padding: '1rem 2.25rem', fontSize: '1.1rem', boxShadow: '0 6px 20px rgba(0,0,0,0.3)' }}
+            onClick={() => {
+              trackWhatsAppClick({ location: 'lavagem_bottom_cta', service: 'Lavagem Otológica', label: 'Falar com Dra Cibele Lavagem' });
+              trackProcedureInteraction({ procedureName: 'Lavagem de Ouvido', source: 'lavagem_bottom_section' });
+            }}
           >
             Falar com a Dra. Cibele no WhatsApp
           </a>
@@ -390,6 +410,9 @@ export function LavagemOuvidoPage() {
           <div className="footer-col">
             <h5>Localização & Contato</h5>
             <p>
+              <strong style={{ color: '#FFFFFF', display: 'block', marginBottom: '0.25rem', fontSize: '0.95rem' }}>
+                Clínica Medicinarte
+              </strong>
               <a 
                 href={DOCTOR_INFO.googleMapsUrl} 
                 target="_blank" 
@@ -408,6 +431,10 @@ export function LavagemOuvidoPage() {
                 target="_blank" 
                 rel="noopener noreferrer" 
                 style={{ color: 'var(--accent-gold)', fontWeight: 600 }}
+                onClick={() => {
+                  trackWhatsAppClick({ location: 'lavagem_footer_phone', service: 'Lavagem Otológica', label: 'WhatsApp Rodapé Lavagem' });
+                  trackProcedureInteraction({ procedureName: 'Lavagem de Ouvido', source: 'lavagem_footer' });
+                }}
               >
                 WhatsApp: {DOCTOR_INFO.phone}
               </a>

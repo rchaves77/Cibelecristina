@@ -1,5 +1,6 @@
 import {
   Perfil,
+  UserRole,
   Paciente,
   Agendamento,
   ProntuarioRegistro,
@@ -13,7 +14,10 @@ import {
   AlertaSobrecarga,
   DespesaOuReceita,
   AgendamentoStatus,
-  GoogleSearchConsoleConfig
+  GoogleSearchConsoleConfig,
+  AnexoProntuario,
+  AuditoriaLog,
+  AdendoEvolucao
 } from '../types/clinical';
 import { DOCTOR_INFO } from '../data/medicinarteData';
 
@@ -23,6 +27,8 @@ const STORAGE_KEYS = {
   PACIENTES: 'cibele_db_pacientes_v1',
   AGENDAMENTOS: 'cibele_db_agendamentos_v1',
   PRONTUARIOS: 'cibele_db_prontuarios_v1',
+  ANEXOS: 'cibele_db_anexos_v1',
+  AUDITORIA_LOGS: 'cibele_db_auditoria_logs_v1',
   VALIDACOES: 'cibele_db_validacoes_v1',
   TEMPLATES_PRESCRICAO: 'cibele_db_templates_prescricao_v1',
   PRESCRICOES_EMITIDAS: 'cibele_db_prescricoes_emitidas_v1',
@@ -49,6 +55,10 @@ const INITIAL_PERFIS: Perfil[] = [
     permissao_financeiro: true,
     permissao_agendar: true,
     permissao_confirmacao_amanha: true,
+    permissao_prontuario_clinico: true,
+    permissao_prescricoes: true,
+    permissao_atestados: true,
+    two_factor_enabled: true,
     dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'],
     hora_inicio: '07:00',
     hora_fim: '22:00',
@@ -64,6 +74,10 @@ const INITIAL_PERFIS: Perfil[] = [
     permissao_financeiro: true,
     permissao_agendar: true,
     permissao_confirmacao_amanha: true,
+    permissao_prontuario_clinico: true, // Acesso total ao SOAP e histórico clínico
+    permissao_prescricoes: true,
+    permissao_atestados: true,
+    two_factor_enabled: true,
     dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
     hora_inicio: '08:00',
     hora_fim: '18:00',
@@ -81,6 +95,10 @@ const INITIAL_PERFIS: Perfil[] = [
     permissao_financeiro: false,
     permissao_agendar: true,
     permissao_confirmacao_amanha: true,
+    permissao_prontuario_clinico: false, // SIGILO MÉDICO: Recepção NÃO enxerga SOAP, CID, diagnósticos e prescrições
+    permissao_prescricoes: false,
+    permissao_atestados: false,
+    two_factor_enabled: false,
     dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
     hora_inicio: '08:00',
     hora_fim: '18:00',
@@ -96,10 +114,92 @@ const INITIAL_PERFIS: Perfil[] = [
     permissao_financeiro: true,
     permissao_agendar: true,
     permissao_confirmacao_amanha: true,
+    permissao_prontuario_clinico: true,
+    permissao_prescricoes: false,
+    permissao_atestados: false,
+    two_factor_enabled: true,
     dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'],
     hora_inicio: '07:00',
     hora_fim: '20:00',
     senha: 'admin123'
+  }
+];
+
+// Seed Inicial de Anexos no Prontuário
+const INITIAL_ANEXOS: AnexoProntuario[] = [
+  {
+    id: 'anx-1',
+    paciente_id: 1,
+    nome_arquivo: 'Hemograma_Completo_Lipidograma_Glicemia.pdf',
+    categoria: 'Exame Laboratorial',
+    tamanho_bytes: 428000,
+    tamanho_formatado: '418 KB',
+    tipo_mime: 'application/pdf',
+    data_upload: new Date(Date.now() - 5 * 86400000).toISOString(),
+    enviado_por: 'Dra. Cibele Cristina',
+    observacoes: 'Exames de rotina preventiva individualizada. Colesterol HDL e glicemia estáveis.'
+  },
+  {
+    id: 'anx-2',
+    paciente_id: 1,
+    nome_arquivo: 'Eletrocardiograma_Repouso_12D.pdf',
+    categoria: 'Eletrocardiograma (ECG)',
+    tamanho_bytes: 654000,
+    tamanho_formatado: '638 KB',
+    tipo_mime: 'application/pdf',
+    data_upload: new Date(Date.now() - 5 * 86400000).toISOString(),
+    enviado_por: 'Dra. Cibele Cristina',
+    observacoes: 'Ritmo sinusal regular, FC 68 bpm, sem alterações agudas da repolarização.'
+  },
+  {
+    id: 'anx-3',
+    paciente_id: 2,
+    nome_arquivo: 'Otoscopia_Fotografica_Conduto_PreLavagem.jpg',
+    categoria: 'Foto Clínica / Lesão',
+    tamanho_bytes: 1850000,
+    tamanho_formatado: '1.8 MB',
+    tipo_mime: 'image/jpeg',
+    data_upload: new Date(Date.now() - 2 * 86400000).toISOString(),
+    enviado_por: 'Dra. Cibele Cristina',
+    observacoes: 'Rolha de cerúmen obstrutiva (grau III) em conduto auditivo esquerdo antes do procedimento.'
+  }
+];
+
+// Seed Inicial de Logs de Auditoria
+const INITIAL_AUDITORIA_LOGS: AuditoriaLog[] = [
+  {
+    id: 'log-1',
+    usuario_id: 'perfil-cibele',
+    usuario_nome: 'Dra. Cibele Cristina',
+    role: 'profissional',
+    acao: 'LOGIN',
+    detalhes: 'Autenticação bem-sucedida na Área Restrita com verificação de segurança.',
+    created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+    ip_ou_origem: 'Bosque, Rio Branco - AC (Sessão Segura)'
+  },
+  {
+    id: 'log-2',
+    usuario_id: 'perfil-cibele',
+    usuario_nome: 'Dra. Cibele Cristina',
+    role: 'profissional',
+    acao: 'ACESSO_PRONTUARIO',
+    detalhes: 'Acesso visual ao prontuário clínico e evoluções SOAP do paciente.',
+    paciente_id: 1,
+    paciente_nome: 'Maria da Silva Albuquerque',
+    created_at: new Date(Date.now() - 90 * 60000).toISOString(),
+    ip_ou_origem: 'Estação Clínica 01'
+  },
+  {
+    id: 'log-3',
+    usuario_id: 'perfil-secretaria',
+    usuario_nome: 'Recepção / Secretária Clínica',
+    role: 'secretaria',
+    acao: 'ACESSO_PRONTUARIO',
+    detalhes: 'Acesso administrativo de cadastro e agendamento (dados clínicos SOAP ocultos por regra de perfil).',
+    paciente_id: 1,
+    paciente_nome: 'Maria da Silva Albuquerque',
+    created_at: new Date(Date.now() - 40 * 60000).toISOString(),
+    ip_ou_origem: 'Recepção Presencial'
   }
 ];
 
@@ -285,8 +385,8 @@ const INITIAL_PRESCRICAO_TEMPLATES: PrescricaoTemplate[] = [
   },
   {
     id: 'tmpl-checkup-racional',
-    titulo: '🩺 Check-up Preventivo Racional (Adulto)',
-    categoria: 'Check-up Racional',
+    titulo: '🩺 Check-up Preventivo Individualizado (Adulto)',
+    categoria: 'Check-up Individualizado',
     itens: [
       {
         id: 'i-3',
@@ -508,7 +608,7 @@ const INITIAL_FINANCEIRO: DespesaOuReceita[] = [
   },
   {
     id: 'fin-2',
-    descricao: 'Check-up Racional - Ana Carolina',
+    descricao: 'Check-up Individualizado - Ana Carolina',
     categoria: 'Consulta',
     tipo: 'Receita',
     valor: 320,
@@ -1231,7 +1331,7 @@ class ClinicalDatabaseService {
     return resultados;
   }
 
-  // --- PRONTUÁRIOS ---
+  // --- PRONTUÁRIOS & EVOLUÇÕES (METODOLOGIA SOAP) ---
   getProntuarios(): ProntuarioRegistro[] {
     return this.getStorage<ProntuarioRegistro[]>(STORAGE_KEYS.PRONTUARIOS, INITIAL_PRONTUARIOS);
   }
@@ -1254,11 +1354,180 @@ class ClinicalDatabaseService {
     const novo: ProntuarioRegistro = {
       ...registro,
       id: newId,
+      adendos: [],
       created_at: new Date().toISOString()
     };
     prontuarios.unshift(novo);
     this.setStorage(STORAGE_KEYS.PRONTUARIOS, prontuarios);
+
+    // Registra Trilha de Auditoria
+    const active = this.getActiveUser();
+    this.logAuditoria({
+      usuario_id: active.id,
+      usuario_nome: active.nome,
+      role: active.role,
+      acao: 'CRIACAO_EVOLUCAO',
+      detalhes: `Registro de nova evolução clínica SOAP (ID #${newId}). CID: ${registro.diagnostico_cid || 'Não codificado'}.`,
+      paciente_id: registro.paciente_id
+    });
+
     return novo;
+  }
+
+  // Imutabilidade CFM: Adiciona Adendo/Retificação sem apagar o registro original
+  addAdendoAoProntuario(prontuarioId: number, params: {
+    autor_nome: string;
+    autor_crm?: string;
+    texto: string;
+    motivo_retificacao: string;
+  }): AdendoEvolucao | null {
+    const prontuarios = this.getProntuarios();
+    const idx = prontuarios.findIndex(p => p.id === prontuarioId);
+    if (idx === -1) return null;
+
+    const adendo: AdendoEvolucao = {
+      id: `adendo-${Date.now()}`,
+      prontuario_id: prontuarioId,
+      autor_nome: params.autor_nome,
+      autor_crm: params.autor_crm || DOCTOR_INFO.crm,
+      texto: params.texto,
+      motivo_retificacao: params.motivo_retificacao,
+      created_at: new Date().toISOString()
+    };
+
+    if (!prontuarios[idx].adendos) {
+      prontuarios[idx].adendos = [];
+    }
+    prontuarios[idx].adendos!.push(adendo);
+    this.setStorage(STORAGE_KEYS.PRONTUARIOS, prontuarios);
+
+    const active = this.getActiveUser();
+    this.logAuditoria({
+      usuario_id: active.id,
+      usuario_nome: active.nome,
+      role: active.role,
+      acao: 'CRIACAO_ADENDO',
+      detalhes: `Adendo / nota de esclarecimento adicionada à evolução #${prontuarioId}. Motivo: ${params.motivo_retificacao}.`,
+      paciente_id: prontuarios[idx].paciente_id
+    });
+
+    return adendo;
+  }
+
+  // --- ANEXOS NO PRONTUÁRIO (EXAMES, LAUDOS, ECG, FOTOS, DOCUMENTOS) ---
+  getAnexos(): AnexoProntuario[] {
+    return this.getStorage<AnexoProntuario[]>(STORAGE_KEYS.ANEXOS, INITIAL_ANEXOS);
+  }
+
+  getAnexosByPaciente(pacienteId: number): AnexoProntuario[] {
+    return this.getAnexos().filter(a => a.paciente_id === pacienteId);
+  }
+
+  saveAnexo(anexo: Omit<AnexoProntuario, 'id' | 'data_upload'>): AnexoProntuario {
+    const list = this.getAnexos();
+    const novo: AnexoProntuario = {
+      ...anexo,
+      id: `anx-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      data_upload: new Date().toISOString()
+    };
+    list.unshift(novo);
+    this.setStorage(STORAGE_KEYS.ANEXOS, list);
+
+    const active = this.getActiveUser();
+    this.logAuditoria({
+      usuario_id: active.id,
+      usuario_nome: active.nome,
+      role: active.role,
+      acao: 'UPLOAD_ANEXO',
+      detalhes: `Novo documento anexado ao prontuário: "${novo.nome_arquivo}" (${novo.categoria} - ${novo.tamanho_formatado}).`,
+      paciente_id: anexo.paciente_id
+    });
+
+    return novo;
+  }
+
+  deleteAnexo(id: string): void {
+    const list = this.getAnexos();
+    const target = list.find(a => a.id === id);
+    const filtered = list.filter(a => a.id !== id);
+    this.setStorage(STORAGE_KEYS.ANEXOS, filtered);
+
+    if (target) {
+      const active = this.getActiveUser();
+      this.logAuditoria({
+        usuario_id: active.id,
+        usuario_nome: active.nome,
+        role: active.role,
+        acao: 'UPLOAD_ANEXO',
+        detalhes: `Anexo de prontuário removido: "${target.nome_arquivo}".`,
+        paciente_id: target.paciente_id
+      });
+    }
+  }
+
+  // --- REGISTRO DE AUDITORIA & LOGS DE ACESSO (CFM & LGPD) ---
+  getAuditoriaLogs(): AuditoriaLog[] {
+    return this.getStorage<AuditoriaLog[]>(STORAGE_KEYS.AUDITORIA_LOGS, INITIAL_AUDITORIA_LOGS);
+  }
+
+  logAuditoria(params: Omit<AuditoriaLog, 'id' | 'created_at'>): AuditoriaLog {
+    const logs = this.getAuditoriaLogs();
+    const novo: AuditoriaLog = {
+      ...params,
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      created_at: new Date().toISOString(),
+      ip_ou_origem: params.ip_ou_origem || 'Sessão Web Segura (Rio Branco / Bosque)'
+    };
+    logs.unshift(novo);
+    // Mantém os últimos 500 logs locais
+    const capped = logs.slice(0, 500);
+    this.setStorage(STORAGE_KEYS.AUDITORIA_LOGS, capped);
+    return novo;
+  }
+
+  // --- CHECAGENS DE PERMISSÃO E SIGILO MÉDICO (RBAC) ---
+  canAccessClinicalProntuario(user?: Perfil): boolean {
+    const target = user || this.getActiveUser();
+    if (!target) return false;
+    if (target.permissao_prontuario_clinico !== undefined) {
+      return target.permissao_prontuario_clinico;
+    }
+    return target.role !== 'secretaria';
+  }
+
+  canPrescribe(user?: Perfil): boolean {
+    const target = user || this.getActiveUser();
+    if (!target) return false;
+    return target.role === 'profissional';
+  }
+
+  canIssueCertificates(user?: Perfil): boolean {
+    const target = user || this.getActiveUser();
+    if (!target) return false;
+    return target.role === 'profissional';
+  }
+
+  toggleTwoFactor(perfilId: string, enabled: boolean): Perfil | null {
+    const perfis = this.getPerfis();
+    const idx = perfis.findIndex(p => p.id === perfilId);
+    if (idx === -1) return null;
+    perfis[idx].two_factor_enabled = enabled;
+    this.setStorage(STORAGE_KEYS.PERFIS, perfis);
+
+    const active = this.getActiveUser();
+    if (active.id === perfilId) {
+      this.setActiveUser(perfis[idx]);
+    }
+
+    this.logAuditoria({
+      usuario_id: active.id,
+      usuario_nome: active.nome,
+      role: active.role,
+      acao: '2FA_CONFIGURADO',
+      detalhes: `Autenticação em dois fatores (2FA) ${enabled ? 'ativada' : 'desativada'} para o perfil "${perfis[idx].nome}".`
+    });
+
+    return perfis[idx];
   }
 
   // --- TEMPLATES DE PRESCRIÇÃO (PADRÕES DE PREENCHIMENTO OU RECEITAS DA DRA. CIBELE) ---

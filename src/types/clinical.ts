@@ -10,6 +10,10 @@ export interface Perfil {
   permissao_financeiro: boolean;
   permissao_agendar: boolean;
   permissao_confirmacao_amanha: boolean;
+  permissao_prontuario_clinico?: boolean; // Permissão para visualizar SOAP, hipóteses, CIDs e prescrições
+  permissao_prescricoes?: boolean;
+  permissao_atestados?: boolean;
+  two_factor_enabled?: boolean; // Autenticação em dois fatores (2FA)
   dias_atendimento: string[]; // e.g. ["SEG", "TER", "QUA", "QUI", "SEX"]
   hora_inicio: string; // "08:00"
   hora_fim: string; // "18:00"
@@ -38,8 +42,8 @@ export interface Paciente {
   telefone: string;
   convenio?: string; // "Particular", "Unimed", etc.
   observacoes?: string;
-  condicoes_cronicas?: string;
-  alergias?: string;
+  condicoes_cronicas?: string[];
+  alergias?: string[];
   cpf?: string;
   data_nascimento?: string;
   email?: string;
@@ -67,6 +71,44 @@ export interface Agendamento {
   observacoes?: string;
 }
 
+export interface AdendoEvolucao {
+  id: string;
+  prontuario_id: number;
+  autor_nome: string;
+  autor_crm?: string;
+  texto: string;
+  motivo_retificacao: string;
+  created_at: string;
+}
+
+export interface AnexoProntuario {
+  id: string;
+  paciente_id: number;
+  prontuario_id?: number;
+  nome_arquivo: string;
+  categoria: 'Exame Laboratorial' | 'Laudo de Imagem' | 'Eletrocardiograma (ECG)' | 'Relatório Externo' | 'Foto Clínica / Lesão' | 'Documento / Termo';
+  tamanho_bytes?: number;
+  tamanho_formatado: string;
+  tipo_mime: string;
+  data_upload: string;
+  enviado_por: string;
+  observacoes?: string;
+  url_arquivo?: string;
+}
+
+export interface AuditoriaLog {
+  id: string;
+  usuario_id: string;
+  usuario_nome: string;
+  role: UserRole;
+  acao: 'LOGIN' | 'LOGOUT' | 'ACESSO_PRONTUARIO' | 'CRIACAO_PACIENTE' | 'CRIACAO_EVOLUCAO' | 'CRIACAO_ADENDO' | 'UPLOAD_ANEXO' | 'DOWNLOAD_ANEXO' | 'EMISSAO_PRESCRICAO' | 'EMISSAO_ATESTADO' | 'EXPORTACAO_DADOS' | 'ALTERACAO_SENHA' | '2FA_CONFIGURADO';
+  detalhes: string;
+  paciente_id?: number;
+  paciente_nome?: string;
+  ip_ou_origem?: string;
+  created_at: string;
+}
+
 export interface ProntuarioRegistro {
   id: number;
   paciente_id: number;
@@ -79,6 +121,7 @@ export interface ProntuarioRegistro {
   plano?: string;
   diagnostico_cid?: string;
   historico?: Record<string, any>;
+  adendos?: AdendoEvolucao[]; // Imutabilidade CFM: histórico de retificações preservando o original
   created_at: string;
 }
 
@@ -108,7 +151,7 @@ export interface PrescricaoItem {
 export interface PrescricaoTemplate {
   id: string;
   titulo: string;
-  categoria: 'Check-up Racional' | 'Lavagem Otológica' | 'Doenças Crônicas' | 'Saúde Mental' | 'Geral';
+  categoria: 'Check-up Individualizado' | 'Check-up Racional' | 'Lavagem Otológica' | 'Doenças Crônicas' | 'Saúde Mental' | 'Geral';
   itens: PrescricaoItem[];
   observacoes_padrao: string;
   created_at: string;

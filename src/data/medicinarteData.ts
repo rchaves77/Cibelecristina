@@ -66,6 +66,7 @@ export const DOCTOR_INFO = {
   crm: 'CRM-AC 1810',
   rqe: 'RQE 1078',
   specialty: 'Medicina de Família e Comunidade',
+  clinicName: 'Clínica Medicinarte',
   clinicLegalName: 'MEDICINARTE SERVIÇOS MÉDICOS LTDA',
   clinicCrmPj: 'CRM-AC PJ 258',
   technicalDirector: 'Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078',
@@ -88,8 +89,8 @@ export const PILLARS: PillarItem[] = [
   {
     id: 'p2',
     iconType: 'target',
-    title: 'Prevenção Racional',
-    desc: 'Solicitação prudente de exames e tratamentos baseados em evidências sólidas, protegendo você de excessos diagnósticos e intervenções desnecessárias.'
+    title: 'Prevenção baseada em evidências',
+    desc: 'Solicitação prudente de exames e condutas com base científica sólida, protegendo você de excessos diagnósticos e intervenções desnecessárias.'
   },
   {
     id: 'p3',
@@ -114,7 +115,7 @@ export const SERVICES: ServiceItem[] = [
   },
   {
     id: 'checkup',
-    tag: 'Prevenção Racional',
+    tag: 'Prevenção Baseada em Evidências',
     title: 'Check-up Individualizado',
     desc: 'Avaliação individualizada do seu estado de saúde, estilo de vida e histórico familiar, com solicitação consciente de exames fundamentados em evidências sólidas.'
   },
@@ -146,28 +147,80 @@ export const SERVICES: ServiceItem[] = [
   }
 ];
 
+export interface OfficeProcedureItem {
+  id: string;
+  title: string;
+  badge: string;
+  summary: string;
+  description: string;
+  indications: string[];
+  requiresEvaluation: boolean;
+  ctaText: string;
+  whatsappMessage: string;
+  externalLink?: string;
+  externalLinkText?: string;
+}
+
+export const OFFICE_PROCEDURES: OfficeProcedureItem[] = [
+  {
+    id: 'lavagem-otologica',
+    title: 'Lavagem Otológica (Remoção de Cerúmen)',
+    badge: 'Saúde Auditiva',
+    summary: 'Avaliação otoscópica prévia e higienização segura com irrigação suave à temperatura corporal no consultório no Bairro Bosque.',
+    description: 'Indicada para pacientes com sensação de ouvido entupido, zumbido por tampão de cera ou diminuição da audição provocada por cerúmen impactado. Procedimento confortável, rápido e indolor.',
+    indications: ['Sensação de ouvido tampado ou abafado', 'Acúmulo comprovado de cerúmen no exame físico', 'Após preparo prévio com gotas quando recomendado'],
+    requiresEvaluation: true,
+    ctaText: 'Agendar Avaliação para Lavagem',
+    whatsappMessage: 'Olá, Dra. Cibele! Gostaria de agendar uma avaliação para Lavagem Otológica no consultório em Rio Branco.',
+    externalLink: '/lavagem-de-ouvido-rio-branco',
+    externalLinkText: 'Ver página exclusiva sobre Lavagem de Ouvido em Rio Branco →'
+  },
+  {
+    id: 'artrocentese',
+    title: 'Artrocentese Articular (Punção Diagnóstica e de Alívio)',
+    badge: 'Cuidado Articular',
+    summary: 'Punção médica com agulha fina para aspiração e descompressão de derrame articular (acúmulo de líquido na articulação).',
+    description: 'Realizada no joelho e em articulações selecionadas sob rigorosa técnica asséptica. Promove alívio mecânico imediato da pressão articular e permite análise laboratorial do líquido sinovial quando clinicamente indicada.',
+    indications: ['Derrame articular com dor, edema ou restrição de mobilidade', 'Avaliação diagnóstica de artrites e sinovites agudas', 'Alívio mecânico da distensão articular'],
+    requiresEvaluation: true,
+    ctaText: 'Agendar Avaliação para Artrocentese',
+    whatsappMessage: 'Olá, Dra. Cibele! Gostaria de agendar uma consulta para avaliação médica articular (Artrocentese).'
+  },
+  {
+    id: 'infiltracao-articular',
+    title: 'Infiltração Articular e Periarticular',
+    badge: 'Controle de Dor e Reabilitação',
+    summary: 'Aplicação médica precisa de substâncias terapêuticas na articulação, bursa ou tecidos periarticulares para controle álgico e inflamatório.',
+    description: 'Indicada para o controle direcionado de dor inflamatória persistente em condições como osteoartrite de joelho, bursite trocantérica, bursite de ombro e tendinopatias selecionadas, restaurando a mobilidade funcional.',
+    indications: ['Bursites de ombro e bursite trocantérica', 'Osteoartrite de joelho com dor inflamatória', 'Tendinopatias com indicação de controle inflamatório local'],
+    requiresEvaluation: true,
+    ctaText: 'Agendar Avaliação para Infiltração',
+    whatsappMessage: 'Olá, Dra. Cibele! Gostaria de agendar uma consulta para avaliação médica de Infiltração Articular.'
+  }
+];
+
 export const FEATURED_HIGHLIGHTS: FeaturedHighlight[] = [
   {
     id: 'destaque_checkup',
-    badge: 'Destaque 1 • Atração de Consulta',
+    badge: 'Prevenção & Longevidade',
     badgeClass: 'badge-checkup',
     badgeOverlay: 'Prevenção & Check-up',
     title: '🩺 Check-up: quais exames realmente preciso fazer?',
     desc: 'Check-up não é fazer todos os exames. Descubra quais avaliações realmente fazem sentido para você e proteja sua saúde com clareza.',
     image: 'https://img.usecurling.com/p/600/380?q=medical%20checkup%20doctor&color=green',
     alt: 'Médica conversando atentamente sobre exames preventivos',
-    category: 'Check-up Racional • Prevenção',
+    category: 'Check-up Individualizado • Prevenção',
     modalTitle: '🩺 Check-up: quais exames realmente preciso fazer?',
     serviceKey: 'Check-up',
-    servicePrompt: 'Check-up Racional',
-    whatsappCta: 'Agendar Check-up Racional',
+    servicePrompt: 'Check-up Individualizado',
+    whatsappCta: 'Agendar Check-up Individualizado',
     whatsappText: 'Olá Dra. Cibele! Li o artigo sobre Check-up e gostaria de agendar uma avaliação individualizada.',
     isPrimary: true,
-    fullHtml: '<p>É comum pensar que um &quot;bom check-up&quot; signifique pedir dezenas de exames de sangue aleatórios, ultrassons e tomografias sem critério.</p><p>A medicina baseada em evidências comprova que o excesso de exames pode encontrar alterações inofensivas que geram ansiedade, custos desnecessários e procedimentos invasivos sem benefício real.</p><p>Na consulta com a Médica de Família, seus exames são pensados de acordo com sua idade, seus antecedentes familiares, seu estilo de vida e seus riscos individuais. Cuidar de verdade é fazer o que é necessário para a sua proteção.</p><p><strong>Pronto para cuidar da sua saúde sem excessos? Agende seu Check-up Racional com a Dra. Cibele.</strong></p>'
+    fullHtml: '<p>É comum pensar que um &quot;bom check-up&quot; signifique pedir dezenas de exames de sangue aleatórios, ultrassons e tomografias sem critério.</p><p>A medicina baseada em evidências comprova que o excesso de exames pode encontrar alterações inofensivas que geram ansiedade, custos desnecessários e procedimentos invasivos sem benefício real.</p><p>Na consulta com a Médica de Família, seus exames são pensados de acordo com sua idade, seus antecedentes familiares, seu estilo de vida e seus riscos individuais. Cuidar de verdade é fazer o que é necessário para a sua proteção.</p><p><strong>Pronto para cuidar da sua saúde sem excessos? Agende seu Check-up Individualizado com a Dra. Cibele.</strong></p>'
   },
   {
     id: 'destaque_lavagem',
-    badge: 'Destaque 2 • Atração de Procedimento',
+    badge: 'Procedimento em Consultório',
     badgeClass: 'badge-procedure',
     badgeOverlay: 'Procedimento em Destaque',
     title: '👂 Ouvido entupido por cera: quando é preciso fazer lavagem?',
@@ -186,7 +239,7 @@ export const FEATURED_HIGHLIGHTS: FeaturedHighlight[] = [
   },
   {
     id: 'destaque_medico_familia',
-    badge: 'Destaque 3 • Fortalecimento de Marca',
+    badge: 'Medicina de Família',
     badgeClass: 'badge-family',
     badgeOverlay: 'Medicina de Família',
     title: '👩‍⚕️ Médico de Família: o que ele trata?',
@@ -367,18 +420,18 @@ export const ARTICLES: ArticleData[] = [
   {
     "id": "destaque_checkup",
     "categoryKey": "prevencao",
-    "category": "Prevenção • Check-up Racional",
+    "category": "Prevenção • Check-up Individualizado",
     "badgeOverlay": "Prevenção",
     "title": "🩺 Check-up: quais exames você realmente precisa fazer?",
     "image": "https://img.usecurling.com/p/600/380?q=medical%20checkup%20doctor&color=green",
     "alt": "Check-up preventivo",
-    "summary": "Excesso de exames sem critério clínico gera alarmes falsos e ansiedade desnecessária. A medicina preventiva racional foca no que verdadeiramente salva vidas.",
+    "summary": "Excesso de exames sem critério clínico gera alarmes falsos e ansiedade desnecessária. A medicina baseada em evidências foca no que verdadeiramente protege a sua vida.",
     "readTime": "Leitura: 4 min",
     "ctaBookText": "Agendar Check-up &rarr;",
-    "ctaBookUrl": "https://wa.me/5568981034408?text=Ol%C3%A1%20Dra.%20Cibele!%20Gostaria%20de%20agendar%20um%20Check-up%20Racional.",
+    "ctaBookUrl": "https://wa.me/5568981034408?text=Ol%C3%A1%20Dra.%20Cibele!%20Gostaria%20de%20agendar%20um%20Check-up%20Individualizado.",
     "serviceKey": "Check-up",
-    "servicePrompt": "Check-up Racional",
-    "fullHtml": "<p>É comum pensar que um 'bom check-up' signifique pedir dezenas de exames de sangue aleatórios, ultrassons e tomografias sem critério.</p><p>A medicina baseada em evidências comprova que <strong>check-up não é fazer todos os exames</strong>. Fazer investigações em excesso sem necessidade clínica gera alarmes falsos, ansiedade, custos desnecessários e procedimentos invasivos que não trazem proteção real.</p><p>O check-up verdadeiro começa com uma consulta atenta e próxima com sua médica de família. Analisamos sua idade, hábitos, histórico familiar e estilo de vida para solicitar exclusivamente os exames fundamentados que protegem seu futuro.</p><p><strong>Pronto para fazer uma prevenção inteligente e personalizada? Agende seu check-up com a Dra. Cibele Cristina.</strong></p>"
+    "servicePrompt": "Check-up Individualizado",
+    "fullHtml": "<p>É comum pensar que um 'bom check-up' signifique pedir dezenas de exames de sangue aleatórios, ultrassons e tomografias sem critério.</p><p>A medicina baseada em evidências comprova que <strong>check-up não é fazer todos os exames</strong>. Fazer investigações em excesso sem necessidade clínica gera alarmes falsos, ansiedade, custos desnecessários e procedimentos invasivos que não trazem proteção real.</p><p>O check-up verdadeiro começa com uma consulta atenta e próxima com sua médica de família. Analisamos sua idade, hábitos, histórico familiar e estilo de vida para solicitar exclusivamente os exames fundamentados que protegem seu futuro.</p><p><strong>Pronto para fazer uma prevenção inteligente e personalizada? Agende seu check-up individualizado com a Dra. Cibele Cristina.</strong></p>"
   },
   {
     "id": "artigo_imunidade",
@@ -393,8 +446,8 @@ export const ARTICLES: ArticleData[] = [
     "ctaBookText": "Agendar Consulta &rarr;",
     "ctaBookUrl": "https://wa.me/5568981034408?text=Ol%C3%A1%20Dra.%20Cibele!%20Gostaria%20de%20agendar%20uma%20consulta%20preventiva.",
     "serviceKey": "Check-up",
-    "servicePrompt": "Check-up Racional Preventivo (Imunidade)",
-    "fullHtml": "<p>Com a alternância de calor intenso, umidade e chuvas em nossa região, gripes e crises respiratórias encontram o terreno perfeito para se espalhar.</p><p>A verdadeira imunidade não vem de suplementos milagrosos comprados sem receita, mas da regularidade no sono, vacinação em dia, controle de estresse e rastreio de deficiências reais no organismo.</p><p>Um check-up racional avalia suas vulnerabilidades biológicas e fornece orientações práticas para blindar a sua saúde antes que o clima te pegue de surpresa.</p><p><strong>Quer passar o ano com as defesas do corpo em alta? Agende seu check-up preventivo com a Dra. Cibele.</strong></p>"
+    "servicePrompt": "Check-up Individualizado Preventivo (Imunidade)",
+    "fullHtml": "<p>Com a alternância de calor intenso, umidade e chuvas em nossa região, gripes e crises respiratórias encontram o terreno perfeito para se espalhar.</p><p>A verdadeira imunidade não vem de suplementos milagrosos comprados sem receita, mas da regularidade no sono, vacinação em dia, controle de estresse e rastreio de deficiências reais no organismo.</p><p>A prevenção baseada em evidências avalia suas vulnerabilidades biológicas e fornece orientações práticas para blindar a sua saúde antes que o clima te pegue de surpresa.</p><p><strong>Quer passar o ano com as defesas do corpo em alta? Agende sua avaliação preventiva com a Dra. Cibele.</strong></p>"
   },
   {
     "id": "artigo_atividade_fisica",
@@ -519,5 +572,15 @@ export const FAQ_ITEMS: FAQItemData[] = [
     id: 'faq5',
     question: 'Como posso agendar minha consulta ou tirar dúvidas?',
     answer: 'Basta clicar em qualquer um dos botões de WhatsApp do site ou enviar uma mensagem para (68) 98103-4408. Nossa equipe responderá prontamente com os horários disponíveis e as orientações para o seu atendimento.'
+  },
+  {
+    id: 'faq6',
+    question: 'Como funciona a política de retorno para avaliação de exames?',
+    answer: 'Quando houver indicação clínica para avaliação de exames solicitados ou reavaliação de conduta terapêutica, os prazos, orientações e condições de retorno são combinados com total clareza e transparência diretamente com a Dra. Cibele durante o seu atendimento.'
+  },
+  {
+    id: 'faq7',
+    question: 'Quais procedimentos médicos são realizados em consultório?',
+    answer: 'Além da consulta clínica abrangente, realizamos em ambiente ambulatorial procedimentos como Lavagem Otológica (remoção segura de rolha de cerúmen) e, sempre mediante avaliação médica prévia e indicação precisa, Artrocentese articular e Infiltração articular/periarticular para alívio de dor e processos inflamatórios.'
   }
 ];
