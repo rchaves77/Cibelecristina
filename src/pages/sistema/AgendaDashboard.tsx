@@ -29,7 +29,7 @@ export const AgendaDashboard: React.FC = () => {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeUser, setActiveUser] = useState<Perfil>(clinicalDb.getActiveUser());
-  const [viewMode, setViewMode] = useState<'dia' | 'semana' | 'mes'>('dia');
+  const [viewMode, setViewMode] = useState<'dia' | 'semana' | 'mes'>('mes');
   const [filterSala, setFilterSala] = useState<number | 'todas'>('todas');
   
   // Modal de Detalhes / Edição Rápida de Agendamento
