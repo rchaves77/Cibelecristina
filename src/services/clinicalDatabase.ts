@@ -1265,6 +1265,24 @@ class ClinicalDatabaseService {
     return { success: true, agendamento: saved };
   }
 
+  deleteAgendamento(agendamentoId: number): boolean {
+    const agendamentos = this.getAgendamentos();
+    const filtered = agendamentos.filter(a => a.id !== agendamentoId);
+    if (filtered.length !== agendamentos.length) {
+      this.setStorage(STORAGE_KEYS.AGENDAMENTOS, filtered);
+      const active = this.getActiveUser();
+      this.logAuditoria({
+        usuario_id: active.id,
+        usuario_nome: active.nome,
+        role: active.role,
+        acao: 'CANCELAR_AGENDAMENTO',
+        detalhes: `Agendamento #${agendamentoId} cancelado/removido da grade.`
+      });
+      return true;
+    }
+    return false;
+  }
+
   // REGRA DE NEGÓCIO 4: Evolução Clínica Automática por Comparecimento
   private triggerEvolucaoAutomatica(agendamento: Agendamento): void {
     const dataFormatada = new Date(agendamento.data_inicio).toLocaleDateString('pt-BR');
