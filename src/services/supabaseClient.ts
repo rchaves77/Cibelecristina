@@ -5,7 +5,7 @@ export const SUPABASE_PROJECT_ID = 'oosfsxekdpzgcizyuyoa';
 export const SUPABASE_URL: string = 
   ((import.meta as any).env?.VITE_SUPABASE_URL as string) || 'https://oosfsxekdpzgcizyuyoa.supabase.co';
 export const SUPABASE_ANON_KEY: string = 
-  ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string) || 
+  ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string) ||  
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vc2ZzeGVrZHB6Z2Npenl1eW9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwNTI5NTcsImV4cCI6MjEwNDYyODk1N30.xlxVN4iRJeXY-wyimFDdomRAYlfrIRkm0BfBwbd6rlY';
 
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_H39jRV6w6OlF4NtTBCzcLA_wbA28ydK';
