@@ -45,6 +45,15 @@ function writeJsonFile<T>(filePath: string, data: T): void {
 }
 
 // API Routes
+app.get('/favicon.ico', (_req, res) => {
+  const icoPath = path.join(process.cwd(), 'public', 'favicon.svg');
+  if (fs.existsSync(icoPath)) {
+    res.setHeader('Content-Type', 'image/svg+xml');
+    return res.sendFile(icoPath);
+  }
+  res.status(204).end();
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', doctor: 'Dra. Cibele Cristina', timestamp: new Date().toISOString() });
 });
