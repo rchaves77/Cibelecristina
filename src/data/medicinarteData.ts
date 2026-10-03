@@ -561,7 +561,7 @@ export const FAQ_ITEMS: FAQItemData[] = [
   {
     id: 'faq3',
     question: 'Como funciona a lavagem de ouvido em Rio Branco?',
-    answer: 'O procedimento é realizado em consultório no Bairro Bosque com prévia avaliação otoscópica para confirmar a presença do cerúmen. Frequentemente recomendamos o preparo de 3 a 5 dias com gotas ceruminolíticas para amolecer a cera, tornando o procedimento 100% confortável e seguro.'
+    answer: 'O procedimento é realizado em consultório no Bairro Bosque com prévia avaliação otoscópica para confirmar a presença do cerúmen. Frequentemente recomendamos o preparo de 5 a 7 dias com gotas ceruminolíticas para amolecer a cera, tornando o procedimento 100% confortável e seguro.'
   },
   {
     id: 'faq4',
