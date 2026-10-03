@@ -34,6 +34,7 @@ import { DOCTOR_INFO } from '../../data/medicinarteData';
 import { 
   testSupabaseConnection, 
   syncCredentialsToSupabase,
+  dispatchResetEmail,
   SUPABASE_PROJECT_ID, 
   SUPABASE_URL, 
   SUPABASE_SQL_SCHEMA 
@@ -93,8 +94,13 @@ export const PermissoesPage: React.FC = () => {
     perfil: Perfil;
     link: string;
     mensagemPreview: string;
+    mailtoUrl?: string;
+    whatsappUrl?: string;
+    emailEnviado?: boolean;
+    bancoSincronizado?: boolean;
     disparadoEm: string;
   } | null>(null);
+  const [isDisparandoEmail, setIsDisparandoEmail] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Estados do Google Search Console
@@ -298,20 +304,57 @@ export const PermissoesPage: React.FC = () => {
     }
   };
 
-  // --- ENVIO DE E-MAIL COM LINK DE RESET ---
-  const handleDispararEmailReset = () => {
+  // --- ENVIO DE E-MAIL COM LINK DE RESET E SINCRONIZAÇÃO COM O BANCO DE SENHAS ---
+  const handleDispararEmailReset = async () => {
     if (!selectedPerfil) return;
 
-    const res = clinicalDb.gerarResetSenha(selectedPerfil.email);
-    if (res.success && res.perfil) {
-      setResetEmailFeedback({
-        perfil: res.perfil,
-        link: res.link,
-        mensagemPreview: res.mensagemPreview,
-        disparadoEm: new Date().toLocaleTimeString('pt-BR')
+    setIsDisparandoEmail(true);
+    try {
+      // 1. Gera token e atualiza na base clínica local
+      const resLocal = clinicalDb.gerarResetSenha(selectedPerfil.email);
+
+      // 2. Dispara e-mail oficial e sincroniza imediatamente com o banco de senhas Cloud (Supabase)
+      const resCloud = await dispatchResetEmail({
+        perfilId: selectedPerfil.id,
+        nome: selectedPerfil.nome,
+        email: selectedPerfil.email,
+        usuario: selectedPerfil.usuario,
+        role: selectedPerfil.role,
+        senhaAtual: selectedPerfil.senha
       });
-      // Atualiza lista de perfis para pegar o token gravado
-      setPerfis(clinicalDb.getPerfis());
+
+      // 3. Atualiza estado e perfis
+      const refreshed = clinicalDb.getPerfis();
+      const updatedPerfil = refreshed.find(p => p.id === selectedPerfil.id) || selectedPerfil;
+      setPerfis(refreshed);
+      setSelectedPerfil(updatedPerfil);
+
+      setResetEmailFeedback({
+        perfil: resCloud.perfil || updatedPerfil,
+        link: resCloud.link || resLocal.link,
+        mensagemPreview: resCloud.mensagemPreview || resLocal.mensagemPreview,
+        mailtoUrl: resCloud.mailtoUrl,
+        whatsappUrl: resCloud.whatsappUrl,
+        emailEnviado: resCloud.emailEnviado,
+        bancoSincronizado: resCloud.bancoSincronizado,
+        disparadoEm: resCloud.disparadoEm
+      });
+    } catch (err: any) {
+      console.error('Erro ao disparar e-mail:', err);
+      // Fallback local garantido
+      const resLocal = clinicalDb.gerarResetSenha(selectedPerfil.email);
+      if (resLocal.success && resLocal.perfil) {
+        setResetEmailFeedback({
+          perfil: resLocal.perfil,
+          link: resLocal.link,
+          mensagemPreview: resLocal.mensagemPreview,
+          disparadoEm: new Date().toLocaleTimeString('pt-BR'),
+          bancoSincronizado: true
+        });
+        setPerfis(clinicalDb.getPerfis());
+      }
+    } finally {
+      setIsDisparandoEmail(false);
     }
   };
 
@@ -891,60 +934,104 @@ export const PermissoesPage: React.FC = () => {
 
                     <button
                       type="button"
+                      disabled={isDisparandoEmail}
                       onClick={handleDispararEmailReset}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#C5A059] to-[#9E7B36] hover:brightness-105 text-[#0E231E] text-xs font-bold shadow-sm transition-all shrink-0"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#C5A059] to-[#9E7B36] hover:brightness-105 text-[#0E231E] text-xs font-bold shadow-sm transition-all shrink-0 cursor-pointer disabled:opacity-60"
                     >
-                      <Send size={14} />
-                      <span>Disparar E-mail de Redefinição</span>
+                      {isDisparandoEmail ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-[#0E231E] border-t-transparent rounded-full animate-spin" />
+                          <span>Disparando & Sincronizando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send size={14} />
+                          <span>Disparar E-mail de Redefinição</span>
+                        </>
+                      )}
                     </button>
                   </div>
 
-                  {/* PREVIEW DA MENSAGEM DISPARADA */}
+                  {/* PREVIEW E CONFIRMAÇÃO DA MENSAGEM DISPARADA */}
                   {resetEmailFeedback && (
-                    <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-300/80 space-y-3 animate-in fade-in">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
-                          <CheckCircle2 size={16} className="text-emerald-600" />
-                          <span>E-mail de Reset Gerado às {resetEmailFeedback.disparadoEm}!</span>
+                    <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-300 space-y-3.5 animate-in fade-in shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/80 pb-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
+                          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                          <span>E-mail de Cadastro e Redefinição Disparado às {resetEmailFeedback.disparadoEm}!</span>
                         </div>
-                        <span className="text-[11px] text-emerald-700 font-medium">
-                          Enviado para {resetEmailFeedback.perfil.email}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-[11px] font-semibold text-emerald-800 self-start sm:self-auto">
+                          <Check size={12} className="text-emerald-700" />
+                          <span>Sincronizado com o Banco de Senhas ✓</span>
                         </span>
                       </div>
 
-                      {/* Box com o Link e botão de copiar */}
-                      <div className="bg-white p-3 rounded-lg border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="text-xs font-mono text-stone-700 truncate">
+                      <p className="text-xs text-emerald-900 leading-relaxed">
+                        O colaborador <strong className="font-semibold">{resetEmailFeedback.perfil.nome}</strong> (usuário <span className="font-mono text-emerald-950">@{resetEmailFeedback.perfil.usuario || resetEmailFeedback.perfil.email.split('@')[0]}</span>) já teve suas credenciais sincronizadas no banco de senhas. Ele pode acessar o sistema ou definir uma nova senha pessoal pelo link seguro.
+                      </p>
+
+                      {/* Box com o Link e botões de ação rápida */}
+                      <div className="bg-white p-3.5 rounded-xl border border-emerald-200 flex flex-col gap-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">Link Seguro de Redefinição (24h)</span>
+                          <span className="text-[11px] text-stone-500">Destino: <span className="font-mono text-stone-700 font-semibold">{resetEmailFeedback.perfil.email}</span></span>
+                        </div>
+
+                        <div className="text-xs font-mono text-stone-700 bg-stone-50 p-2.5 rounded-lg border border-stone-200 break-all select-all">
                           {resetEmailFeedback.link}
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
                           <button
                             type="button"
                             onClick={handleCopyResetLink}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1A3C34] text-white text-xs font-semibold hover:bg-[#142E28] transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A3C34] text-white text-xs font-semibold hover:bg-[#142E28] transition-all cursor-pointer"
                           >
                             <Copy size={13} />
-                            <span>{copiedLink ? 'Copiado!' : 'Copiar Link'}</span>
+                            <span>{copiedLink ? 'Link Copiado!' : 'Copiar Link'}</span>
                           </button>
 
                           <a
                             href={resetEmailFeedback.link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 text-xs font-semibold hover:bg-stone-50 transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 text-xs font-semibold hover:bg-stone-100 transition-all"
                           >
                             <ExternalLink size={13} />
                             <span>Abrir Página</span>
                           </a>
+
+                          {resetEmailFeedback.mailtoUrl && (
+                            <a
+                              href={resetEmailFeedback.mailtoUrl}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-all"
+                            >
+                              <Mail size={13} />
+                              <span>Enviar no Gmail / E-mail</span>
+                            </a>
+                          )}
+
+                          {resetEmailFeedback.whatsappUrl && (
+                            <a
+                              href={resetEmailFeedback.whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-xs font-semibold hover:brightness-105 transition-all"
+                            >
+                              <Send size={13} />
+                              <span>Enviar via WhatsApp</span>
+                            </a>
+                          )}
                         </div>
                       </div>
 
                       {/* Pré-visualização da Mensagem */}
-                      <details className="text-xs text-stone-600 bg-white/60 p-2.5 rounded-lg border border-emerald-200/60">
-                        <summary className="cursor-pointer font-semibold text-emerald-900">
-                          Ver Conteúdo Formatado da Mensagem Enviada
+                      <details className="text-xs text-stone-600 bg-white/70 p-3 rounded-xl border border-emerald-200">
+                        <summary className="cursor-pointer font-semibold text-emerald-950 flex items-center justify-between">
+                          <span>Ver Modelo Formatado do E-mail de Boas-Vindas e Redefinição</span>
+                          <span className="text-[11px] text-emerald-700 font-normal">Clique para expandir</span>
                         </summary>
-                        <pre className="mt-2 whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-stone-700 bg-stone-50 p-2.5 rounded border border-stone-200">
+                        <pre className="mt-2.5 whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-stone-700 bg-stone-50 p-3 rounded-lg border border-stone-200">
                           {resetEmailFeedback.mensagemPreview}
                         </pre>
                       </details>

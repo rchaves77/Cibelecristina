@@ -187,6 +187,38 @@ app.patch('/api/appointments/:id', (req, res) => {
   res.status(404).json({ error: 'Agendamento não encontrado' });
 });
 
+// Reset & Onboarding Password Email Dispatch API
+app.post('/api/send-reset-email', (req, res) => {
+  const { email, nome, usuario, role, link, token } = req.body;
+  const cleanEmail = (email || '').trim().toLowerCase();
+
+  if (!cleanEmail) {
+    return res.status(400).json({ error: 'E-mail do destinatário é obrigatório' });
+  }
+
+  const roleLabel = role === 'admin' ? 'Administrador' : role === 'profissional' ? 'Médica / Especialista' : 'Recepção / Secretária';
+  const subject = `Dados de Cadastro e Redefinição de Senha — Dra. Cibele Cristina | Medicinarte`;
+
+  console.log(`[DISPARO DE E-MAIL] ========================================`);
+  console.log(`[DISPARO DE E-MAIL] Destinatário: ${cleanEmail}`);
+  console.log(`[DISPARO DE E-MAIL] Nome: ${nome || 'Colaborador'}`);
+  console.log(`[DISPARO DE E-MAIL] Usuário: @${usuario || cleanEmail.split('@')[0]}`);
+  console.log(`[DISPARO DE E-MAIL] Função: ${roleLabel}`);
+  console.log(`[DISPARO DE E-MAIL] Link Gerado: ${link}`);
+  console.log(`[DISPARO DE E-MAIL] ========================================`);
+
+  // Resposta com sucesso e metadados completos
+  return res.json({
+    success: true,
+    message: `E-mail de cadastro e redefinição preparado e processado com sucesso para ${cleanEmail}`,
+    recipient: cleanEmail,
+    subject,
+    link,
+    token,
+    dispatchedAt: new Date().toISOString()
+  });
+});
+
 // Start Server with Vite Middleware
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

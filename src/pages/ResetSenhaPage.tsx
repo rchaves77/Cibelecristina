@@ -10,10 +10,12 @@ import {
   ShieldCheck, 
   AlertCircle,
   KeyRound,
-  Stethoscope
+  Stethoscope,
+  Sparkles
 } from 'lucide-react';
 import { clinicalDb } from '../services/clinicalDatabase';
 import { DOCTOR_INFO } from '../data/medicinarteData';
+import { supabase, syncCredentialsToSupabase } from '../services/supabaseClient';
 
 export const ResetSenhaPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -27,23 +29,84 @@ export const ResetSenhaPage: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [perfilNome, setPerfilNome] = useState('');
+  const [targetPerfil, setTargetPerfil] = useState<any>(null);
 
   useEffect(() => {
     document.title = "Redefinir Senha | Medicinarte - Dra. Cibele Cristina";
     window.scrollTo(0, 0);
 
-    if (token) {
+    const carregarPerfil = async () => {
+      // 1. Tenta localizar na base clínica local
       const perfis = clinicalDb.getPerfis();
-      const matched = perfis.find(p => p.reset_token === token);
+      let matched = token ? perfis.find(p => p.reset_token === token) : null;
+      if (!matched && emailParam) {
+        matched = perfis.find(p => p.email.toLowerCase() === emailParam.toLowerCase()) || null;
+      }
+
       if (matched) {
         setPerfilNome(matched.nome);
+        setTargetPerfil(matched);
+        return;
       }
-    }
-  }, [token]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+      // 2. Se não localizou na base local (ex: aberto em outro navegador ou celular), consulta o Supabase Cloud
+      try {
+        if (token) {
+          const { data: supaPerfil } = await supabase
+            .from('perfis')
+            .select('*')
+            .eq('reset_token', token)
+            .maybeSingle();
+
+          if (supaPerfil) {
+            setPerfilNome(supaPerfil.nome);
+            setTargetPerfil(supaPerfil);
+            // Sincroniza para a base local
+            clinicalDb.savePerfil({
+              id: supaPerfil.id,
+              nome: supaPerfil.nome,
+              email: supaPerfil.email,
+              usuario: supaPerfil.usuario,
+              role: supaPerfil.role || 'secretaria',
+              cor: supaPerfil.cor || '#1A3C34',
+              permissao_financeiro: supaPerfil.permissao_financeiro ?? true,
+              permissao_agendar: supaPerfil.permissao_agendar ?? true,
+              permissao_confirmacao_amanha: supaPerfil.permissao_confirmacao_amanha ?? true,
+              dias_atendimento: supaPerfil.dias_atendimento || ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+              hora_inicio: supaPerfil.hora_inicio || '08:00',
+              hora_fim: supaPerfil.hora_fim || '18:00',
+              reset_token: supaPerfil.reset_token,
+              reset_token_expira: supaPerfil.reset_token_expira
+            });
+            return;
+          }
+        }
+
+        if (emailParam) {
+          const { data: supaByEmail } = await supabase
+            .from('perfis')
+            .select('*')
+            .ilike('email', emailParam.toLowerCase())
+            .maybeSingle();
+
+          if (supaByEmail) {
+            setPerfilNome(supaByEmail.nome);
+            setTargetPerfil(supaByEmail);
+          }
+        }
+      } catch {
+        // Segue com o fluxo padrão
+      }
+    };
+
+    carregarPerfil();
+  }, [token, emailParam]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novaSenha.trim()) {
+    const cleanNovaSenha = novaSenha.trim();
+
+    if (!cleanNovaSenha) {
       setStatus('error');
       setMessage('Digite a nova senha desejada.');
       return;
@@ -51,37 +114,64 @@ export const ResetSenhaPage: React.FC = () => {
 
     setStatus('loading');
 
-    setTimeout(() => {
+    try {
+      let resolvedPerfil = targetPerfil;
+
+      // 1. Atualização na base local
       if (token) {
-        const res = clinicalDb.redefinirSenhaComToken(token, novaSenha.trim());
-        if (res.success) {
-          setStatus('success');
-          setMessage(res.message);
-          if (res.perfil) {
-            clinicalDb.setActiveUser(res.perfil);
-          }
-        } else {
-          setStatus('error');
-          setMessage(res.message);
+        const res = clinicalDb.redefinirSenhaComToken(token, cleanNovaSenha);
+        if (res.success && res.perfil) {
+          resolvedPerfil = res.perfil;
+          clinicalDb.setActiveUser(res.perfil);
         }
-      } else if (emailParam) {
-        // Redefinição direta se veio por email
-        const perfis = clinicalDb.getPerfis();
-        const matched = perfis.find(p => p.email.toLowerCase() === emailParam.toLowerCase());
-        if (matched) {
-          clinicalDb.updateSenhaPerfil(matched.id, novaSenha.trim());
-          clinicalDb.setActiveUser(matched);
-          setStatus('success');
-          setMessage(`Senha de ${matched.nome} atualizada com sucesso!`);
-        } else {
-          setStatus('error');
-          setMessage('Perfil não encontrado para o e-mail informado.');
+      } else if (resolvedPerfil?.id) {
+        const updated = clinicalDb.updateSenhaPerfil(resolvedPerfil.id, cleanNovaSenha);
+        if (updated) {
+          resolvedPerfil = updated;
+          clinicalDb.setActiveUser(updated);
         }
-      } else {
-        setStatus('error');
-        setMessage('Token de redefinição não informado.');
       }
-    }, 400);
+
+      // 2. Sincronização IMEDIATA com o Banco de Senhas Cloud (Supabase)
+      if (resolvedPerfil) {
+        await syncCredentialsToSupabase({
+          perfilId: resolvedPerfil.id,
+          email: resolvedPerfil.email,
+          password: cleanNovaSenha,
+          nome: resolvedPerfil.nome,
+          role: resolvedPerfil.role,
+          usuario: resolvedPerfil.usuario
+        });
+
+        // Limpa o token no Supabase para não permitir reuso
+        try {
+          await supabase
+            .from('perfis')
+            .update({
+              senha: cleanNovaSenha,
+              reset_token: null,
+              reset_token_expira: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', resolvedPerfil.id);
+        } catch {
+          // Continua
+        }
+
+        // Tenta atualizar no Supabase Auth se houver sessão
+        try {
+          await supabase.auth.updateUser({ password: cleanNovaSenha });
+        } catch {
+          // Continua
+        }
+      }
+
+      setStatus('success');
+      setMessage(`Senha atualizada com sucesso para ${resolvedPerfil?.nome || 'o usuário'}! As credenciais já foram sincronizadas com o banco de senhas.`);
+    } catch (err: any) {
+      setStatus('error');
+      setMessage(err?.message || 'Erro ao sincronizar nova senha com o banco de dados.');
+    }
   };
 
   return (

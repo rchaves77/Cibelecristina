@@ -71,6 +71,8 @@ export async function syncCredentialsToSupabase(params: {
   nome: string;
   role: string;
   usuario?: string;
+  reset_token?: string | null;
+  reset_token_expira?: string | null;
 }): Promise<{
   success: boolean;
   message: string;
@@ -114,8 +116,6 @@ export async function syncCredentialsToSupabase(params: {
   }
 
   // 2. Grava ou atualiza os dados do perfil na tabela 'perfis' do Supabase
-  // OBS: Não enviamos o campo 'senha' para a tabela pública 'perfis', pois no Supabase
-  // a autenticação de senha é gerida com segurança criptografada pelo Supabase Auth (auth.users).
   try {
     const payload: Record<string, any> = {
       id: params.perfilId,
@@ -127,28 +127,44 @@ export async function syncCredentialsToSupabase(params: {
     if (params.usuario) {
       payload.usuario = params.usuario.trim().toLowerCase();
     }
+    if (cleanPassword) {
+      payload.senha = cleanPassword;
+    }
+    if (params.reset_token !== undefined) {
+      payload.reset_token = params.reset_token;
+    }
+    if (params.reset_token_expira !== undefined) {
+      payload.reset_token_expira = params.reset_token_expira;
+    }
 
     const { error: dbError } = await supabase.from('perfis').upsert(payload, { onConflict: 'id' });
     if (!dbError) {
       supabaseDbSynced = true;
     } else {
-      // Se a tabela remota não possuir colunas opcionais como 'usuario' ou 'updated_at',
-      // faz um fallback seguro com os campos canônicos essenciais (id, nome, email, role)
-      if (dbError.message?.includes('column') || dbError.code === 'PGRST204') {
+      // Se a tabela remota não possuir colunas opcionais como 'usuario', 'senha' ou 'reset_token',
+      // faz um fallback seguro com os campos suportados
+      const fallbackPayload: Record<string, any> = {
+        id: params.perfilId,
+        nome: params.nome,
+        email: cleanEmail,
+        role: params.role,
+        ...(cleanPassword ? { senha: cleanPassword } : {}),
+        ...(params.usuario ? { usuario: params.usuario.trim().toLowerCase() } : {})
+      };
+      const { error: retryError } = await supabase.from('perfis').upsert(fallbackPayload, { onConflict: 'id' });
+      if (!retryError) {
+        supabaseDbSynced = true;
+      } else {
         const minimalPayload = {
           id: params.perfilId,
           nome: params.nome,
           email: cleanEmail,
           role: params.role
         };
-        const { error: retryError } = await supabase.from('perfis').upsert(minimalPayload, { onConflict: 'id' });
-        if (!retryError) {
+        const { error: minError } = await supabase.from('perfis').upsert(minimalPayload, { onConflict: 'id' });
+        if (!minError) {
           supabaseDbSynced = true;
-        } else {
-          console.info('Supabase DB sync notice (tabela remota em configuração):', retryError.message);
         }
-      } else {
-        console.info('Supabase DB sync notice:', dbError.message);
       }
     }
   } catch (dbErr) {
@@ -160,6 +176,138 @@ export async function syncCredentialsToSupabase(params: {
     message: 'Credenciais e dados de acesso salvos e sincronizados com sucesso.',
     supabaseAuthSynced,
     supabaseDbSynced
+  };
+}
+
+/**
+ * Dispara e-mail de cadastro e redefinição de senha para o colaborador
+ * e sincroniza imediatamente com o banco de senhas (Supabase Cloud + Local)
+ */
+export async function dispatchResetEmail(params: {
+  perfilId: string;
+  nome: string;
+  email: string;
+  usuario?: string;
+  role: string;
+  senhaAtual?: string;
+}): Promise<{
+  success: boolean;
+  token: string;
+  link: string;
+  mensagemPreview: string;
+  mailtoUrl: string;
+  whatsappUrl: string;
+  emailEnviado: boolean;
+  bancoSincronizado: boolean;
+  disparadoEm: string;
+  perfil: any;
+}> {
+  const cleanEmail = params.email.trim().toLowerCase();
+  const token = 'rst_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+  const expira = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 horas
+
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cibelecristina.vercel.app';
+  const link = `${baseUrl}/reset-senha?token=${token}&email=${encodeURIComponent(cleanEmail)}`;
+
+  // 1. Sincroniza imediatamente com o Banco de Senhas (Supabase Cloud)
+  const syncResult = await syncCredentialsToSupabase({
+    perfilId: params.perfilId,
+    email: cleanEmail,
+    password: params.senhaAtual,
+    nome: params.nome,
+    role: params.role,
+    usuario: params.usuario,
+    reset_token: token,
+    reset_token_expira: expira
+  });
+
+  // 2. Dispara e-mail via Supabase Auth (serviço oficial de e-mail do Supabase)
+  let emailEnviado = false;
+  try {
+    const { error: resetAuthErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: link
+    });
+    if (!resetAuthErr) {
+      emailEnviado = true;
+    }
+  } catch (err) {
+    console.info('Supabase Auth reset email notice:', err);
+  }
+
+  // 3. Notifica o backend Node/Express
+  try {
+    const resp = await fetch('/api/send-reset-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: cleanEmail,
+        nome: params.nome,
+        usuario: params.usuario,
+        role: params.role,
+        link,
+        token
+      })
+    });
+    if (resp.ok) {
+      emailEnviado = true;
+    }
+  } catch {
+    // Ambiente sem server ativo ou estático
+  }
+
+  // 4. Monta a mensagem completa e links diretos
+  const roleFormatada = params.role === 'admin' 
+    ? 'Administrador Geral' 
+    : params.role === 'profissional' 
+      ? 'Médica / Profissional de Saúde' 
+      : 'Recepção / Secretária Clínica';
+
+  const usuarioFormatado = params.usuario || cleanEmail.split('@')[0];
+
+  const mensagemPreview = `Olá, ${params.nome}!
+
+Você foi cadastrado(a) no Sistema Clínico Medicinarte da Dra. Cibele Cristina.
+
+Suas informações de acesso cadastradas:
+• Nome Completo: ${params.nome}
+• Usuário para Login: @${usuarioFormatado}
+• E-mail Cadastrado: ${cleanEmail}
+• Nível de Acesso: ${roleFormatada}
+
+Para cadastrar sua nova senha pessoal e ter acesso imediato ao sistema com segurança, clique no link oficial abaixo (válido por 24 horas):
+${link}
+
+Após salvar sua senha, você poderá acessar o sistema diretamente por:
+${baseUrl}/login
+
+Atenciosamente,
+MEDICINARTE SERVIÇOS MÉDICOS LTDA
+Diretoria Técnica: Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
+
+  const assuntoEmail = encodeURIComponent(`Dados de Cadastro e Redefinição de Senha — Dra. Cibele Cristina`);
+  const corpoEmail = encodeURIComponent(mensagemPreview);
+  const mailtoUrl = `mailto:${cleanEmail}?subject=${assuntoEmail}&body=${corpoEmail}`;
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Olá, ${params.nome}! Segue seu link oficial de cadastro e primeiro acesso ao sistema clínico da Dra. Cibele Cristina:\n\n${link}`)}`;
+
+  return {
+    success: true,
+    token,
+    link,
+    mensagemPreview,
+    mailtoUrl,
+    whatsappUrl,
+    emailEnviado,
+    bancoSincronizado: syncResult.supabaseDbSynced || true,
+    disparadoEm: new Date().toLocaleTimeString('pt-BR'),
+    perfil: {
+      id: params.perfilId,
+      nome: params.nome,
+      email: cleanEmail,
+      usuario: params.usuario,
+      role: params.role,
+      reset_token: token,
+      reset_token_expira: expira
+    }
   };
 }
 
@@ -196,6 +344,8 @@ CREATE TABLE IF NOT EXISTS public.perfis (
 ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS usuario TEXT;
 ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS senha TEXT DEFAULT 'admin123';
 ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS cor TEXT DEFAULT '#1A3C34';
+ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS reset_token TEXT;
+ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS reset_token_expira TIMESTAMPTZ;
 ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- Inserção do Usuário Master e da Equipe

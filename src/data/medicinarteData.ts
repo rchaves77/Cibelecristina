@@ -192,7 +192,7 @@ export const OFFICE_PROCEDURES: OfficeProcedureItem[] = [
     badge: 'Controle de Dor e Reabilitação',
     summary: 'Aplicação médica precisa de substâncias terapêuticas na articulação, bursa ou tecidos periarticulares para controle álgico e inflamatório.',
     description: 'Indicada para o controle direcionado de dor inflamatória persistente em condições como osteoartrite de joelho, bursite trocantérica, bursite de ombro e tendinopatias selecionadas, restaurando a mobilidade funcional.',
-    indications: ['Bursites de ombro e bursite trocantérica', 'Osteoartrite de joelho com dor inflamatória', 'Tendinopatias com indicação de controle inflamatório local'],
+    indications: ['Osteoartrite de joelho com dor inflamatória', 'Tendinopatias com indicação de controle inflamatório local'],
     requiresEvaluation: true,
     ctaText: 'Agendar Avaliação para Infiltração',
     whatsappMessage: 'Olá, Dra. Cibele! Gostaria de agendar uma consulta para avaliação médica de Infiltração Articular.'
@@ -556,7 +556,7 @@ export const FAQ_ITEMS: FAQItemData[] = [
   {
     id: 'faq2',
     question: 'A Dra. Cibele atende convênios ou somente particular?',
-    answer: 'Os atendimentos são particulares, garantindo a você total dedicação de tempo e qualidade médica. Emitimos nota fiscal e recibo detalhados para que você possa solicitar o reembolso ao seu plano de saúde de acordo com a sua operadora.'
+    answer: 'Os atendimentos são particulares e por meio dos seguintes convênios e parcerias: Despachante Barros, Sintesac, Sintest, PP Saúde, Santa Juliana, Medprev, MedPop, OAB e Real. Para atendimentos particulares, emitimos nota fiscal e recibo detalhados para que você possa solicitar o reembolso ao seu plano de saúde de acordo com a sua operadora.'
   },
   {
     id: 'faq3',

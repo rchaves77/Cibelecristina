@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { clinicalDb } from '../services/clinicalDatabase';
 import { DOCTOR_INFO } from '../data/medicinarteData';
-import { supabase, SUPABASE_PROJECT_ID } from '../services/supabaseClient';
+import { supabase, SUPABASE_PROJECT_ID, dispatchResetEmail } from '../services/supabaseClient';
 import { Perfil } from '../types/clinical';
 
 export const LoginPage: React.FC = () => {
@@ -43,25 +43,70 @@ export const LoginPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const handleSendForgotEmail = (e: React.FormEvent) => {
+  const handleSendForgotEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetEmail = forgotEmail.trim() || identificador.trim();
+    const targetEmail = (forgotEmail.trim() || identificador.trim()).toLowerCase();
     if (!targetEmail) {
       setForgotStatus({ type: 'error', message: 'Informe o endereço de e-mail cadastrado.' });
       return;
     }
 
-    const res = clinicalDb.gerarResetSenha(targetEmail);
-    if (res.success && res.perfil) {
-      setForgotStatus({
-        type: 'success',
-        message: `Link de redefinição gerado e enviado para ${res.perfil.email}.`,
-        link: res.link
-      });
-    } else {
+    try {
+      // 1. Gera localmente
+      const resLocal = clinicalDb.gerarResetSenha(targetEmail);
+      
+      // 2. Dispara e-mail oficial e sincroniza com o banco de senhas Cloud
+      if (resLocal.success && resLocal.perfil) {
+        await dispatchResetEmail({
+          perfilId: resLocal.perfil.id,
+          nome: resLocal.perfil.nome,
+          email: resLocal.perfil.email,
+          usuario: resLocal.perfil.usuario,
+          role: resLocal.perfil.role,
+          senhaAtual: resLocal.perfil.senha
+        });
+
+        setForgotStatus({
+          type: 'success',
+          message: `Link de redefinição gerado, sincronizado com o banco de senhas e enviado para ${resLocal.perfil.email}.`,
+          link: resLocal.link
+        });
+        return;
+      }
+
+      // 3. Tenta localizar no Supabase se não encontrou localmente
+      const { data: supaUser } = await supabase
+        .from('perfis')
+        .select('*')
+        .ilike('email', targetEmail)
+        .maybeSingle();
+
+      if (supaUser) {
+        const cloudRes = await dispatchResetEmail({
+          perfilId: supaUser.id,
+          nome: supaUser.nome,
+          email: supaUser.email,
+          usuario: supaUser.usuario,
+          role: supaUser.role || 'secretaria',
+          senhaAtual: supaUser.senha
+        });
+
+        setForgotStatus({
+          type: 'success',
+          message: `Link de redefinição gerado, sincronizado com o banco de senhas e enviado para ${supaUser.email}.`,
+          link: cloudRes.link
+        });
+        return;
+      }
+
       setForgotStatus({
         type: 'error',
-        message: 'Endereço de e-mail não localizado no cadastro de usuários.'
+        message: 'Endereço de e-mail não localizado no cadastro de colaboradores.'
+      });
+    } catch {
+      setForgotStatus({
+        type: 'error',
+        message: 'Erro ao processar solicitação de redefinição.'
       });
     }
   };
@@ -151,6 +196,40 @@ export const LoginPage: React.FC = () => {
       }
 
       if (targetEmail) {
+        // Verifica se a senha confere diretamente na tabela perfis do Supabase
+        try {
+          const { data: supaUserByEmail } = await supabase
+            .from('perfis')
+            .select('*')
+            .ilike('email', targetEmail)
+            .maybeSingle();
+
+          if (supaUserByEmail && supaUserByEmail.senha === cleanPassword) {
+            const matched = {
+              id: supaUserByEmail.id || `perfil-${Date.now()}`,
+              nome: supaUserByEmail.nome || targetEmail,
+              email: supaUserByEmail.email,
+              usuario: supaUserByEmail.usuario || targetEmail.split('@')[0],
+              role: (supaUserByEmail.role as any) || 'secretaria',
+              cor: supaUserByEmail.cor || '#142E28',
+              permissao_financeiro: supaUserByEmail.permissao_financeiro ?? true,
+              permissao_agendar: supaUserByEmail.permissao_agendar ?? true,
+              permissao_confirmacao_amanha: supaUserByEmail.permissao_confirmacao_amanha ?? true,
+              dias_atendimento: supaUserByEmail.dias_atendimento || ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+              hora_inicio: supaUserByEmail.hora_inicio || '08:00',
+              hora_fim: supaUserByEmail.hora_fim || '18:00',
+              senha: cleanPassword
+            };
+            clinicalDb.savePerfil(matched);
+            clinicalDb.setAuthenticatedSession(matched);
+            setIsLoading(false);
+            navigate(returnTo, { replace: true });
+            return;
+          }
+        } catch {
+          // Continua para o Supabase Auth
+        }
+
         try {
           const { data: supaData, error: supaErr } = await supabase.auth.signInWithPassword({
             email: targetEmail,
