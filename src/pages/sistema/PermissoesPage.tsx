@@ -35,6 +35,9 @@ import {
   testSupabaseConnection, 
   syncCredentialsToSupabase,
   dispatchResetEmail,
+  cadastrarProfissional,
+  resetarSenhaDoProfissional,
+  alterarMinhaSenha,
   SUPABASE_PROJECT_ID, 
   SUPABASE_URL, 
   SUPABASE_SQL_SCHEMA 
@@ -304,6 +307,80 @@ export const PermissoesPage: React.FC = () => {
     }
   };
 
+  // --- ABORDAGEM 1: O ADMINISTRADOR REDEFINIR A SENHA DO PROFISSIONAL (Mudar@123) ---
+  const [isResettingProfissional, setIsResettingProfissional] = useState(false);
+  const handleResetarSenhaProfissional = async (perfilId: string) => {
+    const target = perfis.find(p => p.id === perfilId) || selectedPerfil;
+    if (!target) return;
+
+    if (!window.confirm(`Deseja redefinir a palavra-passe de "${target.nome}" para a senha temporária "Mudar@123"?\n\nO profissional terá obrigatoriamente de definir uma nova senha no seu próximo login.`)) {
+      return;
+    }
+
+    setIsResettingProfissional(true);
+    try {
+      // 1. Invoca a função solicitada
+      const res = await resetarSenhaDoProfissional(target.id);
+
+      // 2. Atualiza localmente garantindo primeiro_acesso e senha temporária
+      clinicalDb.updateSenhaPerfil(target.id, res.senhaTemporaria);
+      const all = clinicalDb.getPerfis();
+      const idx = all.findIndex(p => p.id === target.id);
+      if (idx !== -1) {
+        all[idx].primeiro_acesso = true;
+        all[idx].senha = res.senhaTemporaria;
+        clinicalDb.savePerfil(all[idx]);
+      }
+
+      const refreshed = clinicalDb.getPerfis();
+      setPerfis(refreshed);
+      const updated = refreshed.find(p => p.id === target.id) || null;
+      setSelectedPerfil(updated);
+
+      setCredenciaisFeedback({
+        type: 'success',
+        msg: `Palavra-passe de "${target.nome}" redefinida para "${res.senhaTemporaria}" com primeiro acesso ativado!`
+      });
+      setTimeout(() => setCredenciaisFeedback(null), 6000);
+    } catch (err: any) {
+      alert('Erro ao redefinir palavra-passe: ' + (err?.message || 'Falha de comunicação.'));
+    } finally {
+      setIsResettingProfissional(false);
+    }
+  };
+
+  // --- ABORDAGEM 2: O PRÓPRIO UTILIZADOR ALTERAR A SENHA (LOGADO) ---
+  const [minhaNovaSenhaVoluntaria, setMinhaNovaSenhaVoluntaria] = useState('');
+  const [showMinhaNovaSenhaVoluntaria, setShowMinhaNovaSenhaVoluntaria] = useState(false);
+  const [isUpdatingMinhaSenha, setIsUpdatingMinhaSenha] = useState(false);
+
+  const handleAlterarMinhaSenhaLogado = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (minhaNovaSenhaVoluntaria.length < 6) {
+      alert('A nova palavra-passe deve ter pelo menos 6 caracteres.');
+      return;
+    }
+
+    setIsUpdatingMinhaSenha(true);
+    try {
+      const res = await alterarMinhaSenha(minhaNovaSenhaVoluntaria);
+      if (res.success) {
+        const currentUser = clinicalDb.getActiveUser();
+        if (currentUser) {
+          clinicalDb.updateSenhaPerfil(currentUser.id, minhaNovaSenhaVoluntaria);
+          currentUser.senha = minhaNovaSenhaVoluntaria;
+          currentUser.primeiro_acesso = false;
+          clinicalDb.savePerfil(currentUser);
+          clinicalDb.setActiveUser(currentUser);
+        }
+        setMinhaNovaSenhaVoluntaria('');
+        setPerfis(clinicalDb.getPerfis());
+      }
+    } finally {
+      setIsUpdatingMinhaSenha(false);
+    }
+  };
+
   // --- ENVIO DE E-MAIL COM LINK DE RESET E SINCRONIZAÇÃO COM O BANCO DE SENHAS ---
   const handleDispararEmailReset = async () => {
     if (!selectedPerfil) return;
@@ -401,6 +478,14 @@ export const PermissoesPage: React.FC = () => {
 
       // Tenta sincronizar com o Supabase Cloud
       try {
+        if (newRole === 'profissional') {
+          await cadastrarProfissional({
+            email: created.email,
+            senha: created.senha,
+            nome: created.nome
+          });
+        }
+
         await syncCredentialsToSupabase({
           perfilId: created.id,
           email: created.email,
@@ -712,6 +797,17 @@ export const PermissoesPage: React.FC = () => {
                   <div className="flex items-center gap-2 flex-wrap sm:justify-end">
                     <button
                       type="button"
+                      disabled={isResettingProfissional}
+                      onClick={() => handleResetarSenhaProfissional(selectedPerfil.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                      title="Redefinir palavra-passe para Mudar@123 com primeiro acesso obrigatório"
+                    >
+                      <KeyRound size={13} className="text-amber-700" />
+                      <span>{isResettingProfissional ? 'Redefinindo...' : 'Resetar Senha (Mudar@123)'}</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => handleToggleFirstAccess(selectedPerfil)}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                         selectedPerfil.primeiro_acesso
@@ -901,6 +997,93 @@ export const PermissoesPage: React.FC = () => {
                       >
                         <Sparkles size={14} className="text-[#C5A059]" />
                         <span>Sugerir Senha</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* MÓDULO: REDEFINIÇÃO RÁPIDA DE SENHA PARA TEMPORÁRIA (Mudar@123) */}
+                <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <KeyRound size={18} className="text-amber-800" />
+                      <h4 className="font-serif font-bold text-sm text-amber-950">
+                        Redefinir Palavra-passe do Profissional (Mudar@123)
+                      </h4>
+                    </div>
+                    <p className="text-xs text-amber-900 leading-relaxed max-w-xl">
+                      Define a palavra-passe temporária padrão <strong className="font-mono text-amber-950 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">Mudar@123</strong> e ativa a obrigatoriedade de 1º acesso. Ao entrar no sistema, o profissional terá de definir uma nova palavra-passe definitiva.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isResettingProfissional}
+                    onClick={() => handleResetarSenhaProfissional(selectedPerfil.id)}
+                    className="px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold shadow-sm transition-all shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <RefreshCw size={14} className={isResettingProfissional ? 'animate-spin' : ''} />
+                    <span>{isResettingProfissional ? 'A redefinir...' : 'Redefinir para Mudar@123'}</span>
+                  </button>
+                </div>
+
+                {/* MÓDULO: O PRÓPRIO UTILIZADOR ALTERAR A PALAVRA-PASSE (VOLUNTÁRIO / LOGADO) */}
+                <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Lock size={18} className="text-[#1A3C34]" />
+                        <h4 className="font-serif font-bold text-sm text-stone-900">
+                          Alterar Minha Própria Palavra-passe (Logado)
+                        </h4>
+                      </div>
+                      <p className="text-xs text-stone-500 mt-1">
+                        Se você está autenticado e deseja atualizar a sua palavra-passe pessoal voluntariamente nas configurações:
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleAlterarMinhaSenhaLogado} className="space-y-3">
+                    <div className="max-w-md">
+                      <label className="text-xs font-semibold text-stone-700 block mb-1">
+                        Nova Palavra-passe Pessoal <span className="text-[10px] text-stone-400 font-normal">(Mínimo de 6 caracteres)</span>
+                      </label>
+                      <div className="relative">
+                        <Lock size={15} className="absolute left-3 top-3 text-stone-400" />
+                        <input
+                          type={showMinhaNovaSenhaVoluntaria ? 'text' : 'password'}
+                          value={minhaNovaSenhaVoluntaria}
+                          onChange={(e) => setMinhaNovaSenhaVoluntaria(e.target.value)}
+                          placeholder="Mínimo de 6 caracteres"
+                          className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34]"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowMinhaNovaSenhaVoluntaria(!showMinhaNovaSenhaVoluntaria)}
+                          className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
+                        >
+                          {showMinhaNovaSenhaVoluntaria ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <button
+                        type="submit"
+                        disabled={isUpdatingMinhaSenha}
+                        className="px-4 py-2.5 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
+                      >
+                        {isUpdatingMinhaSenha ? (
+                          <>
+                            <RefreshCw size={14} className="animate-spin text-[#C5A059]" />
+                            <span>Atualizando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save size={14} className="text-[#C5A059]" />
+                            <span>Atualizar Minha Palavra-passe</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>

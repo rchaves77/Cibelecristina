@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   Lock, 
-  Mail, 
   ArrowRight, 
   ArrowLeft, 
   Eye, 
@@ -10,11 +9,12 @@ import {
   CheckCircle2, 
   AlertCircle,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  KeyRound
 } from 'lucide-react';
 import { clinicalDb } from '../services/clinicalDatabase';
 import { DOCTOR_INFO } from '../data/medicinarteData';
-import { supabase, SUPABASE_PROJECT_ID, dispatchResetEmail } from '../services/supabaseClient';
+import { supabase, dispatchResetEmail } from '../services/supabaseClient';
 import { Perfil } from '../types/clinical';
 
 export const LoginPage: React.FC = () => {
@@ -26,253 +26,247 @@ export const LoginPage: React.FC = () => {
     return clinicalDb.isAuthenticated() ? clinicalDb.getActiveUser() : null;
   });
 
-  const [identificador, setIdentificador] = useState('');
+  // Credenciais de entrada
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  // Esqueci minha senha
-  const [showForgotBox, setShowForgotBox] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotStatus, setForgotStatus] = useState<{ type: 'success' | 'error'; message: string; link?: string } | null>(null);
+
+  // Controlo de fluxo: 'login' ou 'primeiro_acesso'
+  const [etapa, setEtapa] = useState<'login' | 'primeiro_acesso'>('login');
+  const [perfilUtilizador, setPerfilUtilizador] = useState<any>(null);
+  const [novaSenha, setNovaSenha] = useState('');
+  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
+  const [showNovaSenha, setShowNovaSenha] = useState(false);
+  const [showConfirmarNovaSenha, setShowConfirmarNovaSenha] = useState(false);
+
+  const [erro, setErro] = useState('');
+  const [carregando, setCarregando] = useState(false);
+
+  // Modal informativo "Esqueceu-se da palavra-passe?"
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   useEffect(() => {
-    document.title = "Acesso ao Sistema Clínico | Dra. Cibele Cristina";
+    document.title = "Acesso Seguro ao Sistema Clínico | Dra. Cibele Cristina";
     window.scrollTo(0, 0);
   }, []);
 
-  const handleSendForgotEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetEmail = (forgotEmail.trim() || identificador.trim()).toLowerCase();
-    if (!targetEmail) {
-      setForgotStatus({ type: 'error', message: 'Informe o endereço de e-mail cadastrado.' });
-      return;
+  // 1. Converte o nome de utilizador no e-mail correspondente
+  const normalizarEmail = (input: string): string => {
+    const valor = input.trim().toLowerCase();
+    if (valor.includes('@')) {
+      return valor;
     }
+    if (valor === 'clientebox' || valor === 'clienteboxplus') {
+      return 'clienteboxplus@gmail.com';
+    }
+    if (valor === 'cibele' || valor === 'cibelemed') {
+      return 'cibele@medicinarte.com.br';
+    }
+    if (valor === 'recepcao' || valor === 'secretaria') {
+      return 'recepcao@medicinarte.com.br';
+    }
+    if (valor === 'admin' || valor === 'cibeleadm') {
+      return 'admin@medicinarte.com.br';
+    }
+    return `${valor}@sistema.local`;
+  };
 
-    try {
-      // 1. Gera localmente
-      const resLocal = clinicalDb.gerarResetSenha(targetEmail);
-      
-      // 2. Dispara e-mail oficial e sincroniza com o banco de senhas Cloud
-      if (resLocal.success && resLocal.perfil) {
-        await dispatchResetEmail({
-          perfilId: resLocal.perfil.id,
-          nome: resLocal.perfil.nome,
-          email: resLocal.perfil.email,
-          usuario: resLocal.perfil.usuario,
-          role: resLocal.perfil.role,
-          senhaAtual: resLocal.perfil.senha
-        });
-
-        setForgotStatus({
-          type: 'success',
-          message: `Link de redefinição gerado, sincronizado com o banco de senhas e enviado para ${resLocal.perfil.email}.`,
-          link: resLocal.link
-        });
-        return;
-      }
-
-      // 3. Tenta localizar no Supabase se não encontrou localmente
-      const { data: supaUser } = await supabase
-        .from('perfis')
-        .select('*')
-        .ilike('email', targetEmail)
-        .maybeSingle();
-
-      if (supaUser) {
-        const cloudRes = await dispatchResetEmail({
-          perfilId: supaUser.id,
-          nome: supaUser.nome,
-          email: supaUser.email,
-          usuario: supaUser.usuario,
-          role: supaUser.role || 'secretaria',
-          senhaAtual: supaUser.senha
-        });
-
-        setForgotStatus({
-          type: 'success',
-          message: `Link de redefinição gerado, sincronizado com o banco de senhas e enviado para ${supaUser.email}.`,
-          link: cloudRes.link
-        });
-        return;
-      }
-
-      setForgotStatus({
-        type: 'error',
-        message: 'Endereço de e-mail não localizado no cadastro de colaboradores.'
-      });
-    } catch {
-      setForgotStatus({
-        type: 'error',
-        message: 'Erro ao processar solicitação de redefinição.'
-      });
+  // 2. Encaminha para o ecrã correspondente ao cargo
+  const redirecionarPorCargo = (cargo?: string) => {
+    const c = (cargo || '').toLowerCase();
+    switch (c) {
+      case 'superadmin':
+        navigate('/painel-master', { replace: true });
+        break;
+      case 'administrador':
+      case 'admin':
+        navigate('/painel-admin', { replace: true });
+        break;
+      case 'medico':
+      case 'profissional':
+        navigate('/atendimento-medico', { replace: true });
+        break;
+      default:
+        navigate(returnTo || '/painel', { replace: true });
     }
   };
 
+  // 3. Processa o início de sessão com Supabase e Fallback Clínico Integrado
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    const cleanInput = identificador.trim();
+    setErro('');
+    const cleanUsername = username.trim();
     const cleanPassword = password.trim();
 
-    if (!cleanInput) {
-      setError('Por favor, informe seu usuário ou e-mail cadastrado.');
+    if (!cleanUsername) {
+      setErro('Por favor, informe seu nome de utilizador ou e-mail.');
       return;
     }
 
     if (!cleanPassword) {
-      setError('Por favor, informe sua senha.');
+      setErro('Por favor, informe sua palavra-passe.');
       return;
     }
 
-    setIsLoading(true);
+    setCarregando(true);
 
     try {
-      // 1. Tenta autenticação direta pelo serviço clínico que aceita usuário ou e-mail
-      const localResult = clinicalDb.login(cleanInput, cleanPassword);
+      const emailInterno = normalizarEmail(cleanUsername);
 
-      if (localResult.success && localResult.user) {
-        // Tenta sincronizar autenticação no Supabase em segundo plano se tiver e-mail
-        if (localResult.user.email) {
-          try {
-            await supabase.auth.signInWithPassword({
-              email: localResult.user.email,
-              password: cleanPassword
-            });
-          } catch {
-            // Segue normalmente com a sessão autenticada
-          }
-        }
+      // 3.1. Tentativa via Supabase Auth
+      let authUser: any = null;
+      let perfil: any = null;
 
-        setIsLoading(false);
-        navigate(returnTo, { replace: true });
-        return;
-      }
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: emailInterno,
+          password: cleanPassword,
+        });
 
-      // 2. Se o usuário digitou e-mail ou não bateu localmente, tenta verificar no Supabase Cloud
-      const isEmail = cleanInput.includes('@');
-      let targetEmail = isEmail ? cleanInput.toLowerCase() : null;
-
-      if (!targetEmail) {
-        // Tenta buscar o e-mail na tabela perfis do Supabase pelo campo 'usuario'
-        try {
-          const { data: supaUser } = await supabase
+        if (!authError && authData?.user) {
+          authUser = authData.user;
+          // Consulta o perfil associado ao utilizador no Supabase
+          const { data: perfilData } = await supabase
             .from('perfis')
             .select('*')
-            .eq('usuario', cleanInput.toLowerCase())
+            .or(`id.eq.${authData.user.id},email.eq.${emailInterno}`)
             .maybeSingle();
 
-          if (supaUser && supaUser.email) {
-            targetEmail = supaUser.email;
-            if (supaUser.senha === cleanPassword) {
-              const matched = {
-                id: supaUser.id || `perfil-${cleanInput.toLowerCase()}`,
-                nome: supaUser.nome || cleanInput,
-                email: supaUser.email,
-                usuario: supaUser.usuario || cleanInput.toLowerCase(),
-                role: (supaUser.role as any) || 'admin',
-                cor: supaUser.cor || '#142E28',
-                permissao_financeiro: supaUser.permissao_financeiro ?? true,
-                permissao_agendar: supaUser.permissao_agendar ?? true,
-                permissao_confirmacao_amanha: supaUser.permissao_confirmacao_amanha ?? true,
-                dias_atendimento: supaUser.dias_atendimento || ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
-                hora_inicio: supaUser.hora_inicio || '08:00',
-                hora_fim: supaUser.hora_fim || '18:00',
-                senha: cleanPassword
-              };
-              clinicalDb.savePerfil(matched);
-              clinicalDb.setAuthenticatedSession(matched);
-              setIsLoading(false);
-              navigate(returnTo, { replace: true });
-              return;
-            }
+          if (perfilData) {
+            perfil = perfilData;
           }
-        } catch {
-          // Segue adiante
         }
+      } catch {
+        // Segue para fallback
       }
 
-      if (targetEmail) {
-        // Verifica se a senha confere diretamente na tabela perfis do Supabase
+      // 3.2. Se não logou no Supabase Auth ou perfil não veio, consulta tabela perfis diretamente
+      if (!perfil) {
         try {
-          const { data: supaUserByEmail } = await supabase
+          const { data: supaPerfis } = await supabase
             .from('perfis')
             .select('*')
-            .ilike('email', targetEmail)
+            .or(`usuario.eq.${cleanUsername.toLowerCase()},email.eq.${emailInterno}`)
             .maybeSingle();
 
-          if (supaUserByEmail && supaUserByEmail.senha === cleanPassword) {
-            const matched = {
-              id: supaUserByEmail.id || `perfil-${Date.now()}`,
-              nome: supaUserByEmail.nome || targetEmail,
-              email: supaUserByEmail.email,
-              usuario: supaUserByEmail.usuario || targetEmail.split('@')[0],
-              role: (supaUserByEmail.role as any) || 'secretaria',
-              cor: supaUserByEmail.cor || '#142E28',
-              permissao_financeiro: supaUserByEmail.permissao_financeiro ?? true,
-              permissao_agendar: supaUserByEmail.permissao_agendar ?? true,
-              permissao_confirmacao_amanha: supaUserByEmail.permissao_confirmacao_amanha ?? true,
-              dias_atendimento: supaUserByEmail.dias_atendimento || ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
-              hora_inicio: supaUserByEmail.hora_inicio || '08:00',
-              hora_fim: supaUserByEmail.hora_fim || '18:00',
-              senha: cleanPassword
-            };
-            clinicalDb.savePerfil(matched);
-            clinicalDb.setAuthenticatedSession(matched);
-            setIsLoading(false);
-            navigate(returnTo, { replace: true });
-            return;
+          if (supaPerfis && supaPerfis.senha === cleanPassword) {
+            perfil = supaPerfis;
           }
         } catch {
-          // Continua para o Supabase Auth
-        }
-
-        try {
-          const { data: supaData, error: supaErr } = await supabase.auth.signInWithPassword({
-            email: targetEmail,
-            password: cleanPassword
-          });
-
-          if (!supaErr && supaData?.user) {
-            const perfis = clinicalDb.getPerfis();
-            const matched = perfis.find(p => p.email.toLowerCase() === targetEmail) || {
-              id: 'perfil-master',
-              nome: targetEmail === 'clienteboxplus@gmail.com' ? 'Diretoria Executiva / Master' : 'Usuário Autenticado',
-              email: targetEmail,
-              usuario: cleanInput.includes('@') ? undefined : cleanInput.toLowerCase(),
-              role: 'admin' as const,
-              cor: '#142E28',
-              permissao_financeiro: true,
-              permissao_agendar: true,
-              permissao_confirmacao_amanha: true,
-              dias_atendimento: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
-              hora_inicio: '08:00',
-              hora_fim: '18:00'
-            };
-            clinicalDb.setAuthenticatedSession(matched);
-            setIsLoading(false);
-            navigate(returnTo, { replace: true });
-            return;
-          }
-        } catch {
-          // Continua
+          // Segue
         }
       }
 
-      // Se não autenticou em nenhuma tentativa
-      setIsLoading(false);
-      setError(localResult.message || 'Usuário ou senha incorretos. Verifique suas credenciais.');
-    } catch {
-      const fallback = clinicalDb.login(cleanInput, cleanPassword);
-      setIsLoading(false);
-      if (fallback.success) {
-        navigate(returnTo, { replace: true });
+      // 3.3. Fallback no banco clínico local da clínica
+      if (!perfil) {
+        const localAuth = clinicalDb.login(cleanUsername, cleanPassword);
+        if (localAuth.success && localAuth.user) {
+          perfil = localAuth.user;
+        }
+      }
+
+      // Se nenhum autenticou
+      if (!perfil) {
+        throw new Error('Utilizador ou palavra-passe inválidos.');
+      }
+
+      // Normaliza cargo/role
+      const cargo = perfil.cargo || perfil.role || 'admin';
+      const isPrimeiroAcesso = Boolean(perfil.primeiro_acesso);
+
+      // Salva a sessão autenticada no banco clínico do sistema
+      const sessionPerfil: Perfil = {
+        id: perfil.id || `perfil-${Date.now()}`,
+        nome: perfil.nome || cleanUsername,
+        email: perfil.email || emailInterno,
+        usuario: perfil.usuario || cleanUsername.toLowerCase(),
+        role: (cargo === 'superadmin' || cargo === 'administrador') ? 'admin' : (cargo === 'medico' ? 'profissional' : (cargo as any) || 'admin'),
+        cor: perfil.cor || '#142E28',
+        permissao_financeiro: perfil.permissao_financeiro ?? true,
+        permissao_agendar: perfil.permissao_agendar ?? true,
+        permissao_confirmacao_amanha: perfil.permissao_confirmacao_amanha ?? true,
+        dias_atendimento: perfil.dias_atendimento || ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+        hora_inicio: perfil.hora_inicio || '08:00',
+        hora_fim: perfil.hora_fim || '18:00',
+        senha: cleanPassword,
+        primeiro_acesso: isPrimeiroAcesso
+      };
+
+      clinicalDb.savePerfil(sessionPerfil);
+      clinicalDb.setAuthenticatedSession(sessionPerfil);
+
+      // 3.4. Verifica se é o primeiro acesso
+      if (isPrimeiroAcesso) {
+        setPerfilUtilizador({ ...perfil, cargo });
+        setEtapa('primeiro_acesso');
       } else {
-        setError(fallback.message || 'Credenciais inválidas.');
+        redirecionarPorCargo(cargo);
       }
+    } catch (err: any) {
+      setErro(err.message || 'Utilizador ou palavra-passe inválidos.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // 4. Define a nova palavra-passe definitiva (Primeiro Acesso)
+  const handleDefinirNovaSenha = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErro('');
+
+    if (novaSenha.length < 6) {
+      setErro('A nova palavra-passe deve conter pelo menos 6 caracteres.');
+      return;
+    }
+
+    if (novaSenha !== confirmarNovaSenha) {
+      setErro('As palavras-passe não coincidem.');
+      return;
+    }
+
+    setCarregando(true);
+
+    try {
+      // 4.1. Atualiza a palavra-passe no Supabase Auth
+      try {
+        const { error: updateAuthError } = await supabase.auth.updateUser({
+          password: novaSenha,
+        });
+        if (updateAuthError) {
+          console.warn('Supabase Auth update aviso:', updateAuthError.message);
+        }
+      } catch (authErr) {
+        console.warn('Supabase Auth exception:', authErr);
+      }
+
+      // 4.2. Atualiza a flag de primeiro acesso e senha na tabela de perfis
+      if (perfilUtilizador?.id) {
+        try {
+          await supabase
+            .from('perfis')
+            .update({ primeiro_acesso: false, senha: novaSenha })
+            .eq('id', perfilUtilizador.id);
+        } catch {
+          // Segue
+        }
+
+        // 4.3. Atualiza no banco clínico local
+        clinicalDb.updateSenhaPerfil(perfilUtilizador.id, novaSenha);
+        const localPerfil = clinicalDb.getPerfis().find(p => p.id === perfilUtilizador.id);
+        if (localPerfil) {
+          localPerfil.primeiro_acesso = false;
+          clinicalDb.savePerfil(localPerfil);
+          clinicalDb.setAuthenticatedSession(localPerfil);
+        }
+      }
+
+      // Concluído: reencaminha para o painel correspondente
+      redirecionarPorCargo(perfilUtilizador?.cargo || perfilUtilizador?.role);
+    } catch (err: any) {
+      setErro(err.message || 'Erro ao guardar nova palavra-passe.');
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -318,45 +312,44 @@ export const LoginPage: React.FC = () => {
           {/* Identificação do Sistema */}
           <div className="text-center space-y-1.5">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#1A3C34] border border-[#C5A059]/40 text-[#C5A059] mb-2 shadow-sm">
-              <ShieldCheck size={24} />
+              {etapa === 'login' ? <ShieldCheck size={24} /> : <KeyRound size={24} />}
             </div>
             <h1 className="font-serif font-bold text-xl sm:text-2xl text-white">
-              Acesso ao Sistema Clínico
+              {etapa === 'login' ? 'Aceder ao Sistema' : 'Primeiro Acesso'}
             </h1>
             <p className="text-xs text-stone-400">
-              Ambiente restrito a profissionais e colaboradores autorizados
+              {etapa === 'login' 
+                ? 'Introduza as suas credenciais de segurança' 
+                : `Olá, ${perfilUtilizador?.nome || 'colaborador'}. Defina a sua palavra-passe definitiva para continuar.`}
             </p>
           </div>
 
-          {/* Aviso de Redirecionamento de Área Restrita */}
-          {location.state?.from && !activeSession && (
-            <div className="p-3 rounded-xl bg-[#1A3C34]/90 border border-[#C5A059]/50 text-stone-200 text-xs flex items-center gap-2.5 animate-in fade-in">
-              <Lock size={16} className="text-[#C5A059] shrink-0" />
-              <span>Esta página é de acesso exclusivo da equipe. Faça login para continuar.</span>
+          {/* Mensagem de Erro com Alto Contraste */}
+          {erro && (
+            <div className="p-3.5 rounded-xl bg-red-950/80 border border-red-500/50 text-red-200 text-xs flex items-start gap-2.5 animate-in fade-in">
+              <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">{erro}</span>
             </div>
           )}
 
-          {/* Banner de Sessão Ativa */}
-          {activeSession && (
+          {/* Banner de Sessão Ativa Prévia (se houver) */}
+          {activeSession && etapa === 'login' && (
             <div className="p-3.5 rounded-xl bg-[#1A3C34] border border-[#C5A059]/60 space-y-2.5 animate-in fade-in">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-xs text-stone-200">
-                    Sessão conectada: <strong className="text-white">{activeSession.nome}</strong>
+                    Sessão ativa: <strong className="text-white">{activeSession.nome}</strong>
                   </span>
                 </div>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0D211C] text-[#C5A059] border border-[#C5A059]/30 uppercase font-semibold">
                   {activeSession.role}
                 </span>
               </div>
-              <div className="text-[11px] text-stone-400 truncate">
-                {activeSession.email}
-              </div>
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => navigate(returnTo)}
+                  onClick={() => redirecionarPorCargo(activeSession.role)}
                   className="flex-1 py-2 px-3 rounded-lg bg-[#C5A059] hover:bg-[#b08e4c] text-[#0E231E] font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
                 >
                   <span>Continuar no Sistema</span>
@@ -367,7 +360,7 @@ export const LoginPage: React.FC = () => {
                   onClick={() => {
                     clinicalDb.logout();
                     setActiveSession(null);
-                    setIdentificador('');
+                    setUsername('');
                     setPassword('');
                   }}
                   className="py-2 px-3 rounded-lg bg-red-950/70 hover:bg-red-900/90 border border-red-500/40 text-red-200 text-xs font-medium cursor-pointer transition-colors"
@@ -378,218 +371,185 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          {/* Mensagem de Erro com Alto Contraste */}
-          {error && (
-            <div className="p-3.5 rounded-xl bg-red-950/80 border border-red-500/50 text-red-200 text-xs flex items-start gap-2.5 animate-in fade-in">
-              <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
-              <span className="leading-relaxed">{error}</span>
-            </div>
-          )}
-
-          {/* Formulário Principal */}
-          <form onSubmit={handleLogin} className="space-y-4">
-            
-            <div>
-              <label className="text-xs font-medium text-stone-300 block mb-1.5">
-                Usuário de Acesso <span className="text-[10px] text-stone-400 font-normal">(ou e-mail cadastrado)</span>
-              </label>
-              <div className="relative">
-                <UserCheck size={15} className="absolute left-3.5 top-3 text-stone-400" />
-                <input
-                  type="text"
-                  required
-                  autoComplete="username"
-                  value={identificador}
-                  onChange={(e) => setIdentificador(e.target.value)}
-                  placeholder="ex: admin, cibele, recepcao"
-                  className="w-full pl-10 pr-3 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors font-mono"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-stone-300">
-                  Senha
+          {/* FLUXO 1: ETAPA LOGIN */}
+          {etapa === 'login' ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              
+              <div>
+                <label className="text-xs font-medium text-stone-300 block mb-1.5">
+                  Nome de Utilizador
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForgotBox(!showForgotBox);
-                    setForgotStatus(null);
-                  }}
-                  className="text-[11px] text-[#C5A059] hover:underline cursor-pointer"
-                >
-                  Esqueci minha senha
-                </button>
-              </div>
-
-              <div className="relative">
-                <Lock size={15} className="absolute left-3.5 top-3 text-stone-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Digite sua senha"
-                  className="w-full pl-10 pr-10 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-2.5 text-stone-400 hover:text-white cursor-pointer"
-                  aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Painel Discreto de Redefinição de Senha */}
-            {showForgotBox && (
-              <div className="p-3.5 rounded-xl bg-[#0D211C] border border-[#28574A] space-y-2.5 animate-in fade-in">
-                <p className="text-xs text-stone-300 font-medium">
-                  Recuperação de Acesso
-                </p>
-                <p className="text-[11px] text-stone-400 leading-relaxed">
-                  Informe o seu e-mail cadastrado para receber o link seguro de redefinição:
-                </p>
-                <div className="flex gap-2">
+                <div className="relative">
+                  <UserCheck size={15} className="absolute left-3.5 top-3 text-stone-400" />
                   <input
-                    type="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder={identificador.includes('@') ? identificador : "seu.email@exemplo.com"}
-                    className="flex-1 bg-[#142E28] border border-[#28574A] rounded-lg px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059]"
+                    type="text"
+                    required
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="ex: cibelemed, cibeleadm ou clientebox"
+                    className="w-full pl-10 pr-3 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-stone-300 block mb-1.5">
+                  Palavra-passe
+                </label>
+
+                <div className="relative">
+                  <Lock size={15} className="absolute left-3.5 top-3 text-stone-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors"
                   />
                   <button
                     type="button"
-                    onClick={handleSendForgotEmail}
-                    className="px-3 py-2 bg-[#1A3C34] hover:bg-[#204a40] border border-[#C5A059]/40 text-[#C5A059] hover:text-white font-semibold text-xs rounded-lg transition-colors shrink-0 cursor-pointer"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-2.5 text-stone-400 hover:text-white cursor-pointer"
+                    aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
                   >
-                    Enviar Link
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
+              </div>
 
-                {forgotStatus && (
-                  <div
-                    className={`p-2.5 rounded-lg text-[11px] ${
-                      forgotStatus.type === 'success'
-                        ? 'bg-emerald-950/70 border border-emerald-500/40 text-emerald-200'
-                        : 'bg-red-950/70 border border-red-500/40 text-red-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-medium">
-                      {forgotStatus.type === 'success' ? (
-                        <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                      ) : (
-                        <AlertCircle size={13} className="text-red-400 shrink-0" />
-                      )}
-                      <span>{forgotStatus.message}</span>
-                    </div>
+              {/* Opções abaixo dos campos de login: Lembrar e Esqueceu-se da palavra-passe */}
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-stone-300">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded border-[#28574A] bg-[#0D211C] text-[#C5A059] focus:ring-0"
+                  />
+                  <span>Lembrar dispositivo</span>
+                </label>
 
-                    {forgotStatus.link && (
-                      <div className="mt-1.5 pt-1.5 border-t border-emerald-800/40">
-                        <Link
-                          to={forgotStatus.link.replace(/^https?:\/\/[^\/]+/, '')}
-                          className="text-[#C5A059] hover:underline font-semibold"
-                        >
-                          Definir nova senha agora &rarr;
-                        </Link>
-                      </div>
-                    )}
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-xs text-[#C5A059] hover:underline cursor-pointer font-medium"
+                >
+                  Esqueceu-se da palavra-passe?
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={carregando}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#C5A059] to-[#9E7B36] hover:brightness-105 text-[#0E231E] font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-75"
+              >
+                {carregando ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-[#0E231E] border-t-transparent rounded-full animate-spin" />
+                    <span>A autenticar...</span>
                   </div>
+                ) : (
+                  <>
+                    <span>Entrar</span>
+                    <ArrowRight size={15} />
+                  </>
                 )}
+              </button>
+
+            </form>
+          ) : (
+            /* FLUXO 2: ETAPA PRIMEIRO ACESSO */
+            <form onSubmit={handleDefinirNovaSenha} className="space-y-4 animate-in fade-in">
+              
+              <div className="p-3 rounded-xl bg-[#0D211C] border border-[#245246] text-xs text-stone-300">
+                Olá, <strong className="text-white">{perfilUtilizador?.nome}</strong>. Defina a sua palavra-passe definitiva para continuar com segurança.
               </div>
-            )}
 
-            <div className="flex items-center pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-stone-300">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-[#28574A] bg-[#0D211C] text-[#C5A059] focus:ring-0"
-                />
-                <span>Manter conectado neste dispositivo</span>
-              </label>
-            </div>
+              <div>
+                <label className="text-xs font-medium text-stone-300 block mb-1.5">
+                  Nova Palavra-passe <span className="text-[10px] text-stone-400">(Mínimo de 6 caracteres)</span>
+                </label>
+                <div className="relative">
+                  <Lock size={15} className="absolute left-3.5 top-3 text-stone-400" />
+                  <input
+                    type={showNovaSenha ? 'text' : 'password'}
+                    required
+                    value={novaSenha}
+                    onChange={(e) => setNovaSenha(e.target.value)}
+                    placeholder="Mínimo de 6 caracteres"
+                    className="w-full pl-10 pr-10 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNovaSenha(!showNovaSenha)}
+                    className="absolute right-3.5 top-2.5 text-stone-400 hover:text-white cursor-pointer"
+                  >
+                    {showNovaSenha ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#C5A059] to-[#9E7B36] hover:brightness-105 text-[#0E231E] font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-75"
-            >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-[#0E231E] border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Entrar no Sistema</span>
-                  <ArrowRight size={15} />
-                </>
-              )}
-            </button>
+              <div>
+                <label className="text-xs font-medium text-stone-300 block mb-1.5">
+                  Confirmar Nova Palavra-passe
+                </label>
+                <div className="relative">
+                  <Lock size={15} className="absolute left-3.5 top-3 text-stone-400" />
+                  <input
+                    type={showConfirmarNovaSenha ? 'text' : 'password'}
+                    required
+                    value={confirmarNovaSenha}
+                    onChange={(e) => setConfirmarNovaSenha(e.target.value)}
+                    placeholder="Repita a nova palavra-passe"
+                    className="w-full pl-10 pr-10 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmarNovaSenha(!showConfirmarNovaSenha)}
+                    className="absolute right-3.5 top-2.5 text-stone-400 hover:text-white cursor-pointer"
+                  >
+                    {showConfirmarNovaSenha ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
 
-            {/* Acesso Rápido com 1 clique para usuários pré-cadastrados */}
-            <div className="pt-2 border-t border-[#1D463C] space-y-2">
-              <span className="text-[11px] text-stone-400 block text-center font-medium">
-                Ou selecione um usuário para preenchimento rápido:
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="flex gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => {
-                    const perfis = clinicalDb.getPerfis();
-                    const p = perfis.find(x => x.id === 'perfil-master');
-                    setIdentificador(p?.usuario || 'admin');
-                    setPassword(p?.senha || 'admin123');
-                    setError('');
-                  }}
-                  className="p-2 rounded-xl bg-[#0D211C] hover:bg-[#1A3C34] border border-[#245246] hover:border-[#C5A059]/50 text-left transition-all cursor-pointer"
+                  onClick={() => setEtapa('login')}
+                  className="px-4 py-2.5 rounded-xl border border-[#245246] bg-[#0D211C] hover:bg-[#1A3C34] text-stone-300 text-xs font-medium transition-colors"
                 >
-                  <div className="text-[11px] font-semibold text-[#C5A059] truncate font-mono">@admin</div>
-                  <div className="text-[10px] text-stone-400 truncate">Coordenação / TI</div>
+                  Voltar
                 </button>
-
                 <button
-                  type="button"
-                  onClick={() => {
-                    const perfis = clinicalDb.getPerfis();
-                    const p = perfis.find(x => x.id === 'perfil-cibele');
-                    setIdentificador(p?.usuario || 'cibele');
-                    setPassword(p?.senha || 'cibele123');
-                    setError('');
-                  }}
-                  className="p-2 rounded-xl bg-[#0D211C] hover:bg-[#1A3C34] border border-[#245246] hover:border-emerald-500/50 text-left transition-all cursor-pointer"
+                  type="submit"
+                  disabled={carregando}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#C5A059] to-[#9E7B36] hover:brightness-105 text-[#0E231E] font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-75"
                 >
-                  <div className="text-[11px] font-semibold text-emerald-400 truncate font-mono">@cibele</div>
-                  <div className="text-[10px] text-stone-400 truncate">Dra. Cibele Cristina</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const perfis = clinicalDb.getPerfis();
-                    const p = perfis.find(x => x.id === 'perfil-secretaria');
-                    setIdentificador(p?.usuario || 'recepcao');
-                    setPassword(p?.senha || 'recepcao123');
-                    setError('');
-                  }}
-                  className="p-2 rounded-xl bg-[#0D211C] hover:bg-[#1A3C34] border border-[#245246] hover:border-sky-500/50 text-left transition-all cursor-pointer"
-                >
-                  <div className="text-[11px] font-semibold text-sky-400 truncate font-mono">@recepcao</div>
-                  <div className="text-[10px] text-stone-400 truncate">Atendimento</div>
+                  {carregando ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-[#0E231E] border-t-transparent rounded-full animate-spin" />
+                      <span>A guardar...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <span>Guardar e Entrar</span>
+                      <ArrowRight size={15} />
+                    </>
+                  )}
                 </button>
               </div>
-            </div>
 
-          </form>
+            </form>
+          )}
 
           {/* Aviso de Segurança & Orientação a Pacientes */}
           <div className="pt-4 border-t border-[#1E4339] space-y-2 text-center">
             <p className="text-[11px] text-stone-400 leading-relaxed">
-              Ambiente protegido. Tentativas de acesso não autorizadas são registradas para auditoria médica e segurança.
+              Ambiente protegido com criptografia de ponta a ponta. Tentativas de acesso não autorizadas são registradas para auditoria médica e segurança.
             </p>
             <p className="text-[11px] text-stone-400">
               É paciente e deseja agendar consulta?{' '}
@@ -610,6 +570,55 @@ export const LoginPage: React.FC = () => {
           <span>Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078</span>
         </div>
       </footer>
+
+      {/* Modal Informativo: Esqueceu-se da palavra-passe? */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-[#142E28] border border-[#2D5A4D] rounded-2xl max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-5 text-stone-200">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-[#1A3C34] border border-[#C5A059]/50 flex items-center justify-center text-[#C5A059] shrink-0">
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-base text-white">
+                  Redefinição de Credenciais
+                </h3>
+                <span className="text-[11px] text-[#C5A059] font-medium block">
+                  Acesso Restrito aos Colaboradores
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#0D211C] border border-[#234E43] text-xs text-stone-200 leading-relaxed space-y-2.5">
+              <p className="font-medium text-white">
+                Por motivos de segurança e por utilizar um acesso interno, por favor contacte a administração da clínica para redefinir as suas credenciais de acesso.
+              </p>
+              <p className="text-[11px] text-stone-400">
+                A administração da clínica ou a coordenação médica possui autorização no painel administrativo para gerar uma nova senha temporária imediata para o seu perfil.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <a
+                href={`https://wa.me/5568999847113?text=${encodeURIComponent('Olá! Sou colaborador do consultório e solicito à administração a redefinição da minha palavra-passe de acesso ao sistema.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-[#0A1A16] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <span>Contactar Administração</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(false)}
+                className="py-2.5 px-4 rounded-xl border border-[#2D5A4D] bg-[#0E231E] hover:bg-[#1A3C34] text-stone-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Compreendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

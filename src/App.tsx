@@ -37,8 +37,16 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-senha" element={<ResetSenhaPage />} />
 
-        {/* Validação Pública de Atestados e Laudos via QR Code */}
+        {/* Validação Pública de Atestados e Laudos via QR Code ou Código */}
+        <Route path="/validar" element={<ValidarAtestadoPage />} />
+        <Route path="/validar-atestado" element={<ValidarAtestadoPage />} />
         <Route path="/validar/:id" element={<ValidarAtestadoPage />} />
+
+        {/* Rotas de Painel por Cargo (compatibilidade com redirecionamento de segurança) */}
+        <Route path="/painel" element={<Navigate to="/sistema" replace />} />
+        <Route path="/painel-master" element={<Navigate to="/sistema" replace />} />
+        <Route path="/painel-admin" element={<Navigate to="/sistema" replace />} />
+        <Route path="/atendimento-medico" element={<Navigate to="/sistema/prontuario" replace />} />
 
         {/* Sistema Clínico Operacional - Exclusivo para Usuários Autenticados */}
         <Route

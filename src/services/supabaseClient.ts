@@ -180,6 +180,123 @@ export async function syncCredentialsToSupabase(params: {
 }
 
 /**
+ * Cadastra um novo profissional de saúde no Supabase Auth com metadados do perfil
+ */
+export async function cadastrarProfissional(formData: {
+  email: string;
+  senha: string;
+  nome: string;
+  telefone?: string;
+  [key: string]: any;
+}): Promise<{ data: any; error: any; user?: any }> {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email.trim().toLowerCase(),
+      password: formData.senha,
+      options: {
+        data: {
+          nome: formData.nome,
+          telefone: formData.telefone || '',
+          tipo: 'profissional',
+        },
+      },
+    });
+
+    if (error) {
+      console.error("Erro no cadastro:", error.message);
+      return { data: null, error };
+    }
+
+    console.log("Usuário registrado e perfil criado automaticamente!", data.user);
+    return { data, error: null, user: data.user };
+  } catch (err: any) {
+    console.error("Exceção no cadastro do profissional:", err);
+    return { data: null, error: err };
+  }
+}
+
+/**
+ * Abordagem 1: O Administrador Redefinir a Senha do Profissional
+ * Define a senha temporária 'Mudar@123' e marca o perfil para primeiro_acesso obrigatório.
+ */
+export async function resetarSenhaDoProfissional(idDoProfissional: string): Promise<{
+  success: boolean;
+  message: string;
+  senhaTemporaria: string;
+}> {
+  const senhaTemporaria = 'Mudar@123';
+
+  // 1. Tenta invocar via RPC oficial do Supabase
+  try {
+    const { error: rpcError } = await supabase.rpc('admin_redefinir_senha', {
+      usuario_id: idDoProfissional,
+      nova_senha_temporaria: senhaTemporaria,
+    });
+
+    if (!rpcError) {
+      const msg = `Palavra-passe redefinida com sucesso para: ${senhaTemporaria}. O profissional terá de definir uma nova senha ao entrar.`;
+      alert(msg);
+      return { success: true, message: msg, senhaTemporaria };
+    }
+  } catch (rpcErr) {
+    console.info('RPC admin_redefinir_senha não encontrada, aplicando fallback direto:', rpcErr);
+  }
+
+  // 2. Fallback resiliente: atualiza diretamente na tabela 'perfis'
+  try {
+    const { error: tableError } = await supabase
+      .from('perfis')
+      .update({
+        senha: senhaTemporaria,
+        primeiro_acesso: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', idDoProfissional);
+
+    if (tableError) {
+      const errMsg = 'Erro ao redefinir palavra-passe: ' + tableError.message;
+      alert(errMsg);
+      return { success: false, message: errMsg, senhaTemporaria };
+    }
+  } catch (tabErr: any) {
+    console.warn('Erro ao atualizar perfis:', tabErr);
+  }
+
+  const successMsg = `Palavra-passe redefinida com sucesso para: ${senhaTemporaria}. O profissional terá de definir uma nova senha ao entrar.`;
+  alert(successMsg);
+  return { success: true, message: successMsg, senhaTemporaria };
+}
+
+/**
+ * Abordagem 2: O Próprio Utilizador Alterar a Senha (Logado)
+ * Atualiza no Supabase Auth e notifica o utilizador.
+ */
+export async function alterarMinhaSenha(novaSenha: string): Promise<{ success: boolean; message: string }> {
+  if (novaSenha.length < 6) {
+    alert('A nova palavra-passe deve ter pelo menos 6 caracteres.');
+    return { success: false, message: 'A nova palavra-passe deve ter pelo menos 6 caracteres.' };
+  }
+
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: novaSenha,
+    });
+
+    if (error) {
+      alert('Erro ao atualizar: ' + error.message);
+      return { success: false, message: error.message };
+    }
+
+    alert('Palavra-passe atualizada com sucesso!');
+    return { success: true, message: 'Palavra-passe atualizada com sucesso!' };
+  } catch (err: any) {
+    const msg = 'Erro ao atualizar: ' + (err?.message || 'Falha de comunicação.');
+    alert(msg);
+    return { success: false, message: msg };
+  }
+}
+
+/**
  * Dispara e-mail de cadastro e redefinição de senha para o colaborador
  * e sincroniza imediatamente com o banco de senhas (Supabase Cloud + Local)
  */

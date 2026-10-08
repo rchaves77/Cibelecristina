@@ -114,6 +114,16 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdmin, onOpenBooking, onOp
               Visualizar Currículo Lattes
             </button>
 
+            <div className="pt-2">
+              <a
+                href="/validar-atestado"
+                className="inline-flex items-center gap-1.5 text-xs text-[#CBD5E0] hover:text-[#4ADE80] transition-colors"
+              >
+                <Shield className="w-3.5 h-3.5 text-[#4ADE80]" />
+                <span>Validador de Atestado & Laudos</span>
+              </a>
+            </div>
+
             <div className="pt-4 border-t border-[#2D5A54]/50 space-y-2">
               <span className="block text-[10px] uppercase tracking-wider font-semibold text-[#CBD5E0]/70">Área Exclusiva:</span>
               <button
