@@ -185,9 +185,11 @@ export const ResetSenhaPage: React.FC = () => {
       <header className="relative z-20 bg-[#142E28]/90 backdrop-blur-md border-b border-[#234E43] px-4 sm:px-8 py-3.5">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1A3C34] border border-[#C5A059] flex items-center justify-center font-serif font-bold text-sm text-[#C5A059]">
-              CC
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Dra. Cibele Cristina" 
+              className="w-10 h-10 rounded-xl object-contain bg-[#FAF8F5] p-1 border border-[#C5A059] shadow-xs shrink-0" 
+            />
             <div>
               <span className="font-serif font-bold text-base text-white block">
                 {DOCTOR_INFO.name}

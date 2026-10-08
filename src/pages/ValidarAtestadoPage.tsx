@@ -107,9 +107,11 @@ export const ValidarAtestadoPage: React.FC = () => {
       <div className="w-full max-w-xl mx-auto my-auto py-6">
         {/* CABEÇALHO INSTITUCIONAL */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#1A3C34] text-[#C5A059] font-serif font-bold text-2xl shadow-md mb-3 border border-[#C5A059]/40">
-            CC
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="Logo Dra. Cibele Cristina" 
+            className="w-16 h-16 rounded-2xl object-contain bg-[#FAF8F5] p-1.5 shadow-md mb-3 border border-[#C5A059]/50 mx-auto"
+          />
           <h1 className="font-serif font-bold text-xl sm:text-2xl text-stone-900">
             {DOCTOR_INFO.fullName}
           </h1>

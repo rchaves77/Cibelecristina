@@ -48,9 +48,11 @@ export function LavagemOuvidoPage() {
       <header className="site-header">
         <div className="header-inner">
           <Link to="/" className="header-brand" aria-label="Voltar para a página inicial">
-            <div className="monogram-badge">
-              <span className="monogram-text">CC</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Dra. Cibele Cristina" 
+              style={{ width: '42px', height: '42px', borderRadius: '12px', objectFit: 'contain', backgroundColor: '#FAF8F5', padding: '3px', border: '1px solid rgba(197, 160, 89, 0.4)' }}
+            />
             <div className="brand-text">
               <span className="brand-name">{DOCTOR_INFO.name}</span>
               <span className="brand-subtitle">{DOCTOR_INFO.specialty} • {DOCTOR_INFO.crm}</span>
@@ -378,9 +380,11 @@ export function LavagemOuvidoPage() {
         <div className="footer-inner">
           <div className="footer-col">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-              <div className="monogram-badge" style={{ width: '36px', height: '36px' }}>
-                <span className="monogram-text" style={{ fontSize: '0.85rem' }}>CC</span>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Logo Dra. Cibele Cristina" 
+                style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'contain', backgroundColor: '#FAF8F5', padding: '2px', border: '1px solid rgba(197, 160, 89, 0.4)' }}
+              />
               <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem', color: '#FFFFFF', fontWeight: 700 }}>
                 MEDICINARTE
               </span>

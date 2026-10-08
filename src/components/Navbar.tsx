@@ -69,9 +69,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenBooking, onOpenAdmin, acti
         <div className="flex items-center justify-between h-20">
           {/* Brand */}
           <a href="#" className="flex items-center gap-3.5 group">
-            <div className="w-10 h-10 rounded-lg bg-[#DCE7E5]/50 text-[#2D5A54] border border-[#DCE7E5] flex items-center justify-center group-hover:bg-[#DCE7E5] transition-colors">
-              <Stethoscope className="w-5 h-5 text-[#2D5A54]" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Dra. Cibele Cristina" 
+              className="w-11 h-11 rounded-xl object-contain bg-[#FAF8F5] p-1 border border-[#C5A059]/40 shadow-xs group-hover:border-[#C5A059] transition-all"
+            />
             <div className="flex flex-col">
               <span className="text-xl sm:text-2xl font-serif italic text-[#2D5A54] leading-none group-hover:text-[#1A3A36] transition-colors">
                 {DOCTOR_PROFILE.name}

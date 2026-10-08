@@ -17,9 +17,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdmin, onOpenBooking, onOp
           {/* Col 1: Identity & Credentials */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#2D5A54] border border-[#4ADE80]/30 text-[#4ADE80] flex items-center justify-center shadow-xs">
-                <Stethoscope className="w-5 h-5" />
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Logo Dra. Cibele Cristina" 
+                className="w-11 h-11 rounded-xl object-contain bg-[#FAF8F5] p-1 border border-[#C5A059]/40 shadow-xs"
+              />
               <div>
                 <span className="block font-serif italic font-bold text-white text-base leading-tight">
                   {DOCTOR_PROFILE.name}

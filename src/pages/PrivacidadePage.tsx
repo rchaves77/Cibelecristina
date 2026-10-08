@@ -20,9 +20,11 @@ export function PrivacidadePage() {
       <header className="site-header">
         <div className="header-inner">
           <Link to="/" className="header-brand" aria-label="Voltar para a página inicial">
-            <div className="monogram-badge">
-              <span className="monogram-text">CC</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Dra. Cibele Cristina" 
+              style={{ width: '42px', height: '42px', borderRadius: '12px', objectFit: 'contain', backgroundColor: '#FAF8F5', padding: '3px', border: '1px solid rgba(197, 160, 89, 0.4)' }}
+            />
             <div className="brand-text">
               <span className="brand-name">{DOCTOR_INFO.name}</span>
               <span className="brand-subtitle">{DOCTOR_INFO.specialty} • {DOCTOR_INFO.crm}</span>

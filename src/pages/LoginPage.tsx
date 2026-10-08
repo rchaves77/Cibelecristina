@@ -281,9 +281,11 @@ export const LoginPage: React.FC = () => {
       <header className="relative z-20 border-b border-[#1E4339] bg-[#0E231E]/80 backdrop-blur-md px-4 sm:px-8 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#142E28] border border-[#C5A059]/60 flex items-center justify-center font-serif font-bold text-xs text-[#C5A059]">
-              CC
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Dra. Cibele Cristina" 
+              className="w-10 h-10 rounded-xl object-contain bg-[#FAF8F5] p-1 border border-[#C5A059]/60 shadow-xs shrink-0" 
+            />
             <div>
               <span className="font-serif font-semibold text-sm text-white block leading-tight">
                 {DOCTOR_INFO.name}
@@ -311,17 +313,19 @@ export const LoginPage: React.FC = () => {
           
           {/* Identificação do Sistema */}
           <div className="text-center space-y-1.5">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#1A3C34] border border-[#C5A059]/40 text-[#C5A059] mb-2 shadow-sm">
-              {etapa === 'login' ? <ShieldCheck size={24} /> : <KeyRound size={24} />}
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Dra. Cibele Cristina" 
+              className="w-16 h-16 rounded-2xl object-contain bg-[#FAF8F5] p-1.5 border border-[#C5A059]/60 shadow-md mx-auto mb-2" 
+            />
             <h1 className="font-serif font-bold text-xl sm:text-2xl text-white">
-              {etapa === 'login' ? 'Aceder ao Sistema' : 'Primeiro Acesso'}
+              {etapa === 'login' ? 'Acessar Sistema' : 'Primeiro Acesso'}
             </h1>
-            <p className="text-xs text-stone-400">
-              {etapa === 'login' 
-                ? 'Introduza as suas credenciais de segurança' 
-                : `Olá, ${perfilUtilizador?.nome || 'colaborador'}. Defina a sua palavra-passe definitiva para continuar.`}
-            </p>
+            {etapa === 'primeiro_acesso' && (
+              <p className="text-xs text-stone-400">
+                Olá, {perfilUtilizador?.nome || 'colaborador'}. Defina a sua palavra-passe definitiva para continuar.
+              </p>
+            )}
           </div>
 
           {/* Mensagem de Erro com Alto Contraste */}
@@ -377,7 +381,7 @@ export const LoginPage: React.FC = () => {
               
               <div>
                 <label className="text-xs font-medium text-stone-300 block mb-1.5">
-                  Nome de Utilizador
+                  Nome de acesso
                 </label>
                 <div className="relative">
                   <UserCheck size={15} className="absolute left-3.5 top-3 text-stone-400" />
@@ -387,8 +391,8 @@ export const LoginPage: React.FC = () => {
                     autoComplete="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="ex: cibelemed, cibeleadm ou clientebox"
-                    className="w-full pl-10 pr-3 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors font-mono"
+                    placeholder=""
+                    className="w-full pl-10 pr-3 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors font-mono"
                   />
                 </div>
               </div>
@@ -406,8 +410,8 @@ export const LoginPage: React.FC = () => {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white placeholder-stone-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors"
+                    placeholder=""
+                    className="w-full pl-10 pr-10 py-2.5 bg-[#0D211C] border border-[#245246] rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-colors"
                   />
                   <button
                     type="button"
