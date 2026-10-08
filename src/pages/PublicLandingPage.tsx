@@ -1403,7 +1403,7 @@ export function PublicLandingPage() {
             <p style={{ fontSize: '0.825rem', color: '#95ACA2', lineHeight: 1.5, marginTop: '0.4rem' }}>
               <strong>MEDICINARTE SERVIÇOS MÉDICOS LTDA</strong><br />
               Registro no CRM: CRM-AC PJ 258<br />
-              Diretora Técnica: Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
+              Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
             </p>
             <p style={{ fontSize: '0.78rem', color: '#849E93', marginTop: '0.6rem' }}>
               Tratamento ético e seguro de dados em conformidade com a LGPD e o Código de Ética Médica.

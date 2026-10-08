@@ -282,7 +282,7 @@ ${baseUrl}/login
 
 Atenciosamente,
 MEDICINARTE SERVIÇOS MÉDICOS LTDA
-Diretoria Técnica: Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
+Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
 
   const assuntoEmail = encodeURIComponent(`Dados de Cadastro e Redefinição de Senha — Dra. Cibele Cristina`);
   const corpoEmail = encodeURIComponent(mensagemPreview);

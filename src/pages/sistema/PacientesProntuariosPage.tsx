@@ -41,6 +41,7 @@ import {
   Agendamento 
 } from '../../types/clinical';
 import { CidAutocompleteInput } from '../../components/common/CidAutocompleteInput';
+import { resolveCidString } from '../../data/cidDatabase';
 import { DOCTOR_INFO } from '../../data/medicinarteData';
 
 export const PacientesProntuariosPage: React.FC = () => {
@@ -226,6 +227,8 @@ export const PacientesProntuariosPage: React.FC = () => {
     e.preventDefault();
     if (!selectedPaciente || !canAccessSoap) return;
 
+    const resolvedCid = resolveCidString(novaEvolucao.diagnostico_cid);
+
     clinicalDb.saveProntuario({
       paciente_id: selectedPaciente.id,
       profissional_nome: currentUser.crm ? `${currentUser.nome} (${currentUser.crm})` : DOCTOR_INFO.fullName,
@@ -233,7 +236,7 @@ export const PacientesProntuariosPage: React.FC = () => {
       objetivo: novaEvolucao.objetivo,
       avaliacao: novaEvolucao.avaliacao,
       plano: novaEvolucao.plano,
-      diagnostico_cid: novaEvolucao.diagnostico_cid
+      diagnostico_cid: resolvedCid
     });
 
     setNovaEvolucao({
@@ -696,11 +699,11 @@ export const PacientesProntuariosPage: React.FC = () => {
 
                       <div className="space-y-3 pt-1">
                         <CidAutocompleteInput
-                          label="Diagnóstico de Conclusão / Hipótese (CID-10 & CID-11)"
+                          label="Diagnóstico de Conclusão / Hipótese (CID-10)"
                           value={novaEvolucao.diagnostico_cid}
                           onChange={(val) => setNovaEvolucao({ ...novaEvolucao, diagnostico_cid: val })}
-                          placeholder="Digite código ou patologia (ex: I10, BA00, cerume, enxaqueca, diabetes, ansiedade)..."
-                          helperText="Pesquisa instantânea médica no banco CID-10 e CID-11."
+                          placeholder="Digite código sem ponto (ex: k041, j00) ou patologia (ex: gripe, cerume)..."
+                          helperText="Digite o código sem ponto (ex: k041) ou a doença para buscar."
                           formatStyle="full"
                         />
 

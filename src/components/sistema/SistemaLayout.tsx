@@ -68,8 +68,9 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
 
   const navItems = [
     { label: 'Agenda & Calendário', path: '/sistema', icon: Calendar },
-    { label: 'Pacientes & Prontuários', path: '/sistema/pacientes', icon: Users },
-    { label: 'Prescrições & Exames', path: '/sistema/prescricoes', icon: FileText, highlight: true },
+    { label: 'Pacientes', path: '/sistema/pacientes', icon: Users },
+    { label: 'Prontuário do Paciente', path: '/sistema/prontuario', icon: BookOpen, highlight: true },
+    { label: 'Prescrições & Exames', path: '/sistema/prescricoes', icon: FileText },
     { label: 'Atestados com QR Code', path: '/sistema/atestados', icon: Award },
     { label: 'Simulador de Taxas', path: '/sistema/taxas', icon: CreditCard },
     { label: 'Financeiro & Caixa', path: '/sistema/financeiro', icon: DollarSign },
@@ -271,7 +272,7 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#1C3F36] text-stone-200 text-xs font-medium text-left"
               >
                 <BookOpen size={15} className="text-[#C5A059]" />
-                <span>Consultar CID-10 & CID-11</span>
+                <span>Consultar Tabela CID-10</span>
               </button>
 
               <Link
@@ -313,15 +314,15 @@ export const SistemaLayout: React.FC<SistemaLayoutProps> = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Botão de Consulta Rápida CID-10 & CID-11 */}
+            {/* Botão de Consulta Rápida CID-10 */}
             <button
               type="button"
               onClick={() => setShowCidModal(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-[#1A3C34] text-stone-700 hover:text-white border border-stone-200 text-xs font-semibold transition-all group"
-              title="Classificação Internacional de Doenças"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-[#1A3C34] text-stone-700 hover:text-white border border-stone-200 text-xs font-semibold transition-all group cursor-pointer"
+              title="Classificação Internacional de Doenças (CID-10)"
             >
               <BookOpen size={14} className="text-[#1A3C34] group-hover:text-[#C5A059] transition-colors" />
-              <span>Consultar CID-10 & CID-11</span>
+              <span>Consultar Tabela CID-10</span>
             </button>
 
             {/* Notificação de Confirmação Automática via WhatsApp */}

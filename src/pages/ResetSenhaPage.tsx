@@ -318,7 +318,7 @@ export const ResetSenhaPage: React.FC = () => {
 
       {/* Rodapé */}
       <footer className="relative z-20 bg-[#0A1A16] border-t border-[#234E43] py-3.5 px-4 text-center text-xs text-stone-400">
-        MEDICINARTE SERVIÇOS MÉDICOS LTDA • Diretora Técnica: Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078
+        MEDICINARTE SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078
       </footer>
 
     </div>

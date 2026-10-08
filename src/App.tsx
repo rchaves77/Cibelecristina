@@ -9,7 +9,8 @@ import { ValidarAtestadoPage } from './pages/ValidarAtestadoPage';
 import { SistemaLayout } from './components/sistema/SistemaLayout';
 import { AgendaDashboard } from './pages/sistema/AgendaDashboard';
 import { TaxasPage } from './pages/sistema/TaxasPage';
-import { PacientesProntuariosPage } from './pages/sistema/PacientesProntuariosPage';
+import { PacientesPage } from './pages/sistema/PacientesPage';
+import { ProntuarioPage } from './pages/sistema/ProntuarioPage';
 import { PrescricoesPage } from './pages/sistema/PrescricoesPage';
 import { AtestadosPage } from './pages/sistema/AtestadosPage';
 import { FinanceiroPage } from './pages/sistema/FinanceiroPage';
@@ -65,7 +66,27 @@ export default function App() {
           element={
             <ProtectedRoute>
               <SistemaLayout>
-                <PacientesProntuariosPage />
+                <PacientesPage />
+              </SistemaLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sistema/prontuario"
+          element={
+            <ProtectedRoute>
+              <SistemaLayout>
+                <ProntuarioPage />
+              </SistemaLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sistema/prontuario/:patientId"
+          element={
+            <ProtectedRoute>
+              <SistemaLayout>
+                <ProntuarioPage />
               </SistemaLayout>
             </ProtectedRoute>
           }

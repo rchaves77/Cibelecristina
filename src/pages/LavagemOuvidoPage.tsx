@@ -300,7 +300,7 @@ export function LavagemOuvidoPage() {
               Rio Branco - AC • CEP: 69900-364
             </p>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              CRM-AC PJ 258 • Diretora Técnica: Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078)
+              CRM-AC PJ 258 • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078)
             </p>
             <a 
               href={DOCTOR_INFO.googleMapsUrl} 
@@ -392,7 +392,7 @@ export function LavagemOuvidoPage() {
             <p style={{ fontSize: '0.825rem', color: '#95ACA2', lineHeight: 1.5 }}>
               <strong>MEDICINARTE SERVIÇOS MÉDICOS LTDA</strong><br />
               Registro no CRM: CRM-AC PJ 258<br />
-              Diretora Técnica Médica: Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
+              Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
             </p>
             <p style={{ fontSize: '0.8rem', color: '#849E93', marginTop: '0.75rem' }}>
               Tratamento de dados em conformidade com a LGPD e sigilo ético profissional.

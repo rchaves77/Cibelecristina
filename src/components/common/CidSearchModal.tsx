@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Search, X, Copy, Check, BookOpen, ExternalLink } from 'lucide-react';
-import { CID_DATABASE, CidItem, searchCid } from '../../data/cidDatabase';
+import React, { useState, useEffect } from 'react';
+import { Search, X, Copy, Check, BookOpen, ExternalLink, Sparkles } from 'lucide-react';
+import { CID_DATABASE, CidItem, searchCid, loadFullCidDatabase, cleanCidCode } from '../../data/cidDatabase';
 
 interface CidSearchModalProps {
   isOpen: boolean;
@@ -16,6 +16,13 @@ export const CidSearchModal: React.FC<CidSearchModalProps> = ({
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadFullCidDatabase().then(() => setIsLoaded(true)).catch(() => {});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -60,14 +67,11 @@ export const CidSearchModal: React.FC<CidSearchModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-serif font-bold text-base text-stone-900">
-                  Classificação Internacional de Doenças (CID-10 & CID-11)
+                  Classificação Internacional de Doenças (CID-10)
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#C5A059]/20 text-[#8F7030]">
-                  OMS / DATASUS
-                </span>
               </div>
               <p className="text-xs text-stone-500">
-                Consulta instantânea de códigos e diagnósticos homologados
+                Consulta de códigos, doenças relacionadas e grupos
               </p>
             </div>
           </div>
@@ -90,7 +94,7 @@ export const CidSearchModal: React.FC<CidSearchModalProps> = ({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Digite o código ou nome da doença (ex: I10, BA00, diabetes, cerume, febre, ansiedade)..."
+              placeholder="Digite o código (ex: k041, j00) ou patologia (ex: gripe, cerume, ansiedade)..."
               className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#1A3C34]/20 focus:border-[#1A3C34]"
             />
             {query && (
@@ -130,19 +134,27 @@ export const CidSearchModal: React.FC<CidSearchModalProps> = ({
               Nenhum diagnóstico encontrado para o termo pesquisado.
             </div>
           ) : (
-            results.map((item) => (
+            results.map((item) => {
+              const isExactCode = cleanCidCode(item.cid10) === cleanCidCode(query);
+              return (
               <div
                 key={item.id}
-                className="py-3 px-3 rounded-xl hover:bg-stone-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className={`py-3 px-3 rounded-xl transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  isExactCode ? 'bg-emerald-50/80 border border-emerald-300/80' : 'hover:bg-stone-50'
+                }`}
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-mono font-bold text-[11px]">
-                      CID-10: {item.cid10}
+                    <span className={`px-2 py-0.5 rounded-md font-mono font-bold text-[11px] ${
+                      isExactCode ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-900'
+                    }`}>
+                      {item.cid10}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-mono font-bold text-[11px]">
-                      CID-11: {item.cid11}
-                    </span>
+                    {item.grupo && (
+                      <span className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 font-medium text-[10px]">
+                        {item.grupo}
+                      </span>
+                    )}
                     <span className="text-[10px] text-stone-400 font-medium">
                       • {item.categoria}
                     </span>
@@ -168,8 +180,8 @@ export const CidSearchModal: React.FC<CidSearchModalProps> = ({
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
-                    onClick={() => handleCopy(`CID-10: ${item.cid10} | CID-11: ${item.cid11} - ${item.nome}`, item.id)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-200 hover:border-[#1A3C34] text-stone-700 hover:text-[#1A3C34] text-[10px] font-semibold transition-colors"
+                    onClick={() => handleCopy(`CID-10: ${item.cid10} - ${item.nome}`, item.id)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-200 hover:border-[#1A3C34] text-stone-700 hover:text-[#1A3C34] text-[10px] font-semibold transition-colors cursor-pointer"
                   >
                     {copiedId === item.id ? (
                       <>
@@ -198,7 +210,8 @@ export const CidSearchModal: React.FC<CidSearchModalProps> = ({
                   )}
                 </div>
               </div>
-            ))
+            );
+          })
           )}
         </div>
 

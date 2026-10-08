@@ -50,7 +50,7 @@ export function PrivacidadePage() {
             </h1>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
               MEDICINARTE SERVIÇOS MÉDICOS LTDA • CRM-AC PJ 258<br />
-              Diretora Técnica: Dra. Cibele Cristina Cunha Brígido — CRM-AC 1810 / RQE 1078<br />
+              Dra. Cibele Cristina Cunha Brígido — CRM-AC 1810 / RQE 1078<br />
               Última atualização: Setembro de 2026
             </p>
           </div>

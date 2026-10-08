@@ -994,7 +994,7 @@ class ClinicalDatabaseService {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dracibelecristina.med.br';
     const link = `${baseUrl}/reset-senha?token=${token}&email=${encodeURIComponent(perfis[idx].email)}`;
 
-    const mensagemPreview = `Olá, ${perfis[idx].nome}.\n\nRecebemos uma solicitação para redefinir a sua senha de acesso ao Sistema Clínico Medicinarte da Dra. Cibele Cristina.\n\nPara cadastrar sua nova senha com segurança, clique no link abaixo (válido por 24 horas):\n${link}\n\nSe você não solicitou esta redefinição, por favor ignore este aviso ou informe a Diretoria Técnica.\n\nMEDICINARTE SERVIÇOS MÉDICOS LTDA\nDiretora Técnica: Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
+    const mensagemPreview = `Olá, ${perfis[idx].nome}.\n\nRecebemos uma solicitação para redefinir a sua senha de acesso ao Sistema Clínico Medicinarte da Dra. Cibele Cristina.\n\nPara cadastrar sua nova senha com segurança, clique no link abaixo (válido por 24 horas):\n${link}\n\nSe você não solicitou esta redefinição, por favor ignore este aviso.\n\nMEDICINARTE SERVIÇOS MÉDICOS LTDA\nDra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
 
     return {
       success: true,

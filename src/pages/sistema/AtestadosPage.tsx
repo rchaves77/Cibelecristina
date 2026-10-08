@@ -14,6 +14,7 @@ import { clinicalDb } from '../../services/clinicalDatabase';
 import { Paciente, ValidacaoAtestado } from '../../types/clinical';
 import { SignatureCanvas } from '../../components/SignatureCanvas';
 import { CidAutocompleteInput } from '../../components/common/CidAutocompleteInput';
+import { resolveCidString } from '../../data/cidDatabase';
 import { generateAtestadoPdf } from '../../utils/pdfGenerator';
 import { DOCTOR_INFO } from '../../data/medicinarteData';
 
@@ -69,7 +70,7 @@ export const AtestadosPage: React.FC = () => {
       tipo_documento: tipoDocumento,
       conteudo_texto: textoFinal,
       dias_afastamento: diasAfastamento,
-      cid: cid.trim() || undefined
+      cid: cid.trim() ? resolveCidString(cid.trim()) : undefined
     });
 
     // 2. Renderiza PDF e faz download com QR Code
@@ -130,6 +131,7 @@ export const AtestadosPage: React.FC = () => {
                   className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
                 >
                   <option value="Atestado Médico">Atestado Médico (Afastamento)</option>
+                  <option value="Atestado de Acompanhamento de Doente">Atestado de Acompanhamento de Doente / Familiar</option>
                   <option value="Declaração de Comparecimento">Declaração de Comparecimento</option>
                   <option value="Laudo Médico">Laudo Médico Pericial</option>
                   <option value="Relatório de Saúde">Relatório de Acompanhamento</option>
@@ -189,10 +191,10 @@ export const AtestadosPage: React.FC = () => {
 
                 <div>
                   <CidAutocompleteInput
-                    label="Diagnóstico CID-10 & CID-11"
+                    label="Diagnóstico CID-10"
                     value={cid}
                     onChange={(val) => setCid(val)}
-                    placeholder="Digite letras ou código (ex: I10, BA00, gripe, cerume)..."
+                    placeholder="Digite código sem ponto (ex: k041, j00) ou patologia (ex: gripe, cerume)..."
                     helperText="Conforme Resolução CFM 1.658/2002, registro sob consentimento do paciente."
                     formatStyle="full"
                   />
