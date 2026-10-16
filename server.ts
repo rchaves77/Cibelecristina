@@ -21,6 +21,7 @@ if (!fs.existsSync(DATA_DIR)) {
 
 const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
 const APPOINTMENTS_FILE = path.join(DATA_DIR, 'appointments.json');
+const VALIDACOES_FILE = path.join(DATA_DIR, 'validacoes.json');
 
 // Helper to read JSON file
 function readJsonFile<T>(filePath: string, fallback: T): T {
@@ -185,6 +186,48 @@ app.patch('/api/appointments/:id', (req, res) => {
   }
 
   res.status(404).json({ error: 'Agendamento não encontrado' });
+});
+
+// Validação Pública de Atestados, Declarações e Laudos com QR Code e Link
+app.get('/api/validacoes', (_req, res) => {
+  const validacoes = readJsonFile<any[]>(VALIDACOES_FILE, []);
+  res.json({ validacoes });
+});
+
+app.get('/api/validacoes/:key', (req, res) => {
+  const { key } = req.params;
+  const cleanKey = (key || '').trim().toLowerCase();
+  const validacoes = readJsonFile<any[]>(VALIDACOES_FILE, []);
+
+  const found = validacoes.find(v => 
+    (v.id && v.id.toLowerCase() === cleanKey) ||
+    (v.hash_autenticidade && v.hash_autenticidade.toLowerCase() === cleanKey)
+  );
+
+  if (found) {
+    return res.json({ success: true, validacao: found });
+  }
+
+  res.status(404).json({ success: false, message: 'Documento médico não localizado.' });
+});
+
+app.post('/api/validacoes', (req, res) => {
+  const nova = req.body;
+  if (!nova || !nova.id) {
+    return res.status(400).json({ error: 'Dados da validação incompletos' });
+  }
+
+  const validacoes = readJsonFile<any[]>(VALIDACOES_FILE, []);
+  const index = validacoes.findIndex(v => v.id === nova.id || v.hash_autenticidade === nova.hash_autenticidade);
+
+  if (index !== -1) {
+    validacoes[index] = { ...validacoes[index], ...nova };
+  } else {
+    validacoes.unshift(nova);
+  }
+
+  writeJsonFile(VALIDACOES_FILE, validacoes);
+  res.status(201).json({ success: true, validacao: nova });
 });
 
 // Reset & Onboarding Password Email Dispatch API

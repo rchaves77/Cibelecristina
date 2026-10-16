@@ -29,31 +29,63 @@ export const ValidarAtestadoPage: React.FC = () => {
   const [carregando, setCarregando] = useState(false);
 
   const executarValidacao = async (chave: string) => {
-    const clean = chave.trim();
+    let clean = (chave || '').trim();
     if (!clean) {
       setValidacao(null);
       setBuscou(false);
       return;
     }
 
+    // Se o usuário colou uma URL completa (ex: https://.../validar/UUID ou ?codigo=...)
+    if (clean.includes('/validar/')) {
+      clean = clean.split('/validar/').pop()?.split('?')[0] || clean;
+    } else if (clean.includes('/validacao/')) {
+      clean = clean.split('/validacao/').pop()?.split('?')[0] || clean;
+    } else if (clean.includes('codigo=')) {
+      clean = clean.split('codigo=').pop()?.split('&')[0] || clean;
+    }
+
     setCarregando(true);
     setBuscou(true);
 
     try {
-      // 1. Busca no banco local clínico por ID ou por Hash
+      // 1. Busca primeiro na API persistente do Servidor (funciona para qualquer pessoa que escanear o QR Code no celular)
+      try {
+        const res = await fetch(`/api/validacoes/${encodeURIComponent(clean)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.validacao) {
+            setValidacao(json.validacao);
+            setCarregando(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Consulta /api/validacoes falhou, tentando fallback local:', err);
+      }
+
+      // 2. Busca no banco local clínico por ID ou por Hash
       const todas = clinicalDb.getValidacoes();
       const localFound = todas.find(v => 
-        v.id.toLowerCase() === clean.toLowerCase() ||
+        (v.id && v.id.toLowerCase() === clean.toLowerCase()) ||
         (v.hash_autenticidade && v.hash_autenticidade.toLowerCase() === clean.toLowerCase())
       );
 
       if (localFound) {
         setValidacao(localFound);
+        // Aproveita e sincroniza com o servidor se ainda não estiver lá
+        try {
+          fetch('/api/validacoes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(localFound)
+          }).catch(() => {});
+        } catch {}
         setCarregando(false);
         return;
       }
 
-      // 2. Busca na tabela do Supabase Cloud
+      // 3. Busca na tabela do Supabase Cloud (se configurado)
       try {
         const { data: supaDoc } = await supabase
           .from('validacoes_atestados')
@@ -108,9 +140,9 @@ export const ValidarAtestadoPage: React.FC = () => {
         {/* CABEÇALHO INSTITUCIONAL */}
         <div className="text-center mb-6">
           <img 
-            src="/logo.png" 
-            alt="Logo Dra. Cibele Cristina" 
-            className="w-16 h-16 rounded-2xl object-contain bg-[#FAF8F5] p-1.5 shadow-md mb-3 border border-[#C5A059]/50 mx-auto"
+            src="/logo-atestado.png" 
+            alt="Logo Drª. Cibele Cristina" 
+            className="w-20 h-20 object-contain mb-3 mx-auto"
           />
           <h1 className="font-serif font-bold text-xl sm:text-2xl text-stone-900">
             {DOCTOR_INFO.fullName}
@@ -128,7 +160,7 @@ export const ValidarAtestadoPage: React.FC = () => {
         <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-md border border-stone-200 mb-6">
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="text-xs font-bold text-stone-700 block">
-              Digite ou cole o Código Verificador / Hash do Documento:
+              Digite ou cole o Código Verificador, Hash ou Link do Documento:
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -137,7 +169,7 @@ export const ValidarAtestadoPage: React.FC = () => {
                   type="text"
                   value={codigoInput}
                   onChange={(e) => setCodigoInput(e.target.value)}
-                  placeholder="ex: BR-AC-1810-7F9B ou UUID"
+                  placeholder="ex: BR-AC-1810-03F0 ou cole o link do QR Code"
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-stone-300 text-xs sm:text-sm font-mono focus:outline-none focus:border-[#1A3C34] focus:ring-1 focus:ring-[#1A3C34] bg-stone-50/50"
                   required
                 />
@@ -171,7 +203,7 @@ export const ValidarAtestadoPage: React.FC = () => {
                       Documento Médico Autêntico & Válido
                     </h3>
                     <p className="text-xs text-emerald-700">
-                      Emitido e assinado digitalmente pelo consultório da Dra. Cibele Cristina.
+                      Emitido e assinado digitalmente pelo consultório da Drª. Cibele Cristina.
                     </p>
                   </div>
                 </div>

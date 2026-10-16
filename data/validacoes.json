@@ -1,0 +1,21 @@
+[
+  {
+    "id": "03f0964d-ff9a-4118-a1c1-9e615aa2e648",
+    "paciente_nome": "Maria da Silva Albuquerque",
+    "profissional_nome": "Drª. Cibele Cristina Cunha Brígido (CRM-AC 1810 • RQE 1078)",
+    "tipo_documento": "Declaração de Comparecimento",
+    "conteudo_texto": "Declaro para os devidos fins trabalhistas e escolares que o(a) paciente Maria da Silva Albuquerque, CPF: 123.456.789-00, compareceu a este consultório médico em 16/10/2026, no período das 09:00 às 10:30 horas, acompanhado(a) por Romulo chaves da silva, para realização de consulta médica ambulatorial.",
+    "created_at": "2026-10-16T14:16:00.000Z",
+    "hash_autenticidade": "BR-AC-1810-03F0"
+  },
+  {
+    "id": "a7b3c291-8841-4cf1-9b17-09fca9876543",
+    "paciente_nome": "Maria da Silva Albuquerque",
+    "profissional_nome": "Drª. Cibele Cristina Cunha Brígido (CRM-AC 1810 • RQE 1078)",
+    "tipo_documento": "Atestado Médico de Afastamento",
+    "conteudo_texto": "Atesto para os devidos fins que o(a) paciente Maria da Silva Albuquerque esteve sob meus cuidados profissionais na presente data, necessitando de 3 dia(s) de repouso e afastamento de suas atividades habituais a partir desta data para recuperação de sua saúde.",
+    "dias_afastamento": 3,
+    "created_at": "2026-10-14T10:30:00.000Z",
+    "hash_autenticidade": "BR-AC-1810-7F9B"
+  }
+]

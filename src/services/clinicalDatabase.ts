@@ -480,9 +480,18 @@ const INITIAL_PRESCRICAO_TEMPLATES: PrescricaoTemplate[] = [
 // Seed Inicial de Validações de Atestados
 const INITIAL_VALIDACOES: ValidacaoAtestado[] = [
   {
+    id: '03f0964d-ff9a-4118-a1c1-9e615aa2e648',
+    paciente_nome: 'Maria da Silva Albuquerque',
+    profissional_nome: 'Drª. Cibele Cristina Cunha Brígido (CRM-AC 1810 • RQE 1078)',
+    tipo_documento: 'Declaração de Comparecimento',
+    conteudo_texto: 'Declaro para os devidos fins trabalhistas e escolares que o(a) paciente Maria da Silva Albuquerque, CPF: 123.456.789-00, compareceu a este consultório médico em 16/10/2026, no período das 09:00 às 10:30 horas, acompanhado(a) por Romulo chaves da silva, para realização de consulta médica ambulatorial.',
+    created_at: '2026-10-16T14:16:00.000Z',
+    hash_autenticidade: 'BR-AC-1810-03F0'
+  },
+  {
     id: 'a7b3c291-8841-4cf1-9b17-09fca9876543',
     paciente_nome: 'Maria da Silva Albuquerque',
-    profissional_nome: 'Dra. Cibele Cristina Cunha Brígido (CRM-AC 1810 / RQE 1078)',
+    profissional_nome: 'Drª. Cibele Cristina Cunha Brígido (CRM-AC 1810 • RQE 1078)',
     tipo_documento: 'Declaração de Comparecimento',
     conteudo_texto: 'Declaro para os devidos fins que a paciente esteve sob cuidados médicos nesta data das 09:00 às 09:45 para realização de procedimento eletivo.',
     created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
@@ -1633,6 +1642,20 @@ class ClinicalDatabaseService {
     const validacoes = this.getValidacoes();
     validacoes.unshift(nova);
     this.setStorage(STORAGE_KEYS.VALIDACOES, validacoes);
+
+    // Sincronização imediata com a API do servidor para que qualquer leitor de QR Code ou celular valide publicamente
+    if (typeof window !== 'undefined') {
+      try {
+        fetch('/api/validacoes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(nova)
+        }).catch(err => console.warn('Sync validacao servidor:', err));
+      } catch (e) {
+        // ignore
+      }
+    }
+
     return nova;
   }
 

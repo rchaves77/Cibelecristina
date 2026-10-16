@@ -41,6 +41,10 @@ export default function App() {
         <Route path="/validar" element={<ValidarAtestadoPage />} />
         <Route path="/validar-atestado" element={<ValidarAtestadoPage />} />
         <Route path="/validar/:id" element={<ValidarAtestadoPage />} />
+        <Route path="/validacao" element={<ValidarAtestadoPage />} />
+        <Route path="/validacao/:id" element={<ValidarAtestadoPage />} />
+        <Route path="/validar-documento" element={<ValidarAtestadoPage />} />
+        <Route path="/validar-documento/:id" element={<ValidarAtestadoPage />} />
 
         {/* Rotas de Painel por Cargo (compatibilidade com redirecionamento de segurança) */}
         <Route path="/painel" element={<Navigate to="/sistema" replace />} />

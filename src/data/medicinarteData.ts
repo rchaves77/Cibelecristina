@@ -74,7 +74,7 @@ export const DOCTOR_INFO = {
   whatsappNumber: '5568981034408',
   address: 'Rua Antunes de Alencar, 152 – Bosque, Rio Branco / AC, CEP: 69900-364',
   googleMapsUrl: 'https://maps.google.com/?q=Rua+Antunes+de+Alencar,+152+-+Bosque,+Rio+Branco+-+AC,+69900-364',
-  logoImage: '/logo.png',
+  logoImage: '/logo-atestado.png',
   doctorImage: '/cibele.png',
   doctorImageFallback: '/cibele.png'
 };
