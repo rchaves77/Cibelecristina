@@ -341,7 +341,7 @@ export const ValidarAtestadoPage: React.FC = () => {
       </div>
 
       <footer className="text-center text-[11px] text-stone-400 py-3">
-        Medicinarte Serviços Médicos Ltda • CRM-AC 1810 | RQE 1078 • Rio Branco - AC
+        Drª Cibele Cristina • CRM-AC 1810 | RQE 1078 • Rio Branco - AC
       </footer>
     </div>
   );

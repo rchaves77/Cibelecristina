@@ -271,7 +271,7 @@ app.post('/api/send-reset-email', (req, res) => {
   }
 
   const roleLabel = role === 'admin' ? 'Administrador' : role === 'profissional' ? 'Médica / Especialista' : 'Recepção / Secretária';
-  const subject = `Dados de Cadastro e Redefinição de Senha — Dra. Cibele Cristina | Medicinarte`;
+  const subject = `Dados de Cadastro e Redefinição de Senha — Dra. Cibele Cristina`;
 
   console.log(`[DISPARO DE E-MAIL] ========================================`);
   console.log(`[DISPARO DE E-MAIL] Destinatário: ${cleanEmail}`);

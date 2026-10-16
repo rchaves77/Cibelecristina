@@ -1149,16 +1149,16 @@ export function PublicLandingPage() {
                 <div className="contact-detail-text">
                   <h4>Endereço (Clique para abrir rota)</h4>
                   <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '1.05rem', marginTop: '0.15rem', marginBottom: '0.25rem' }}>
-                    Clínica Medicinarte
+                    Bosque Medical Center - Anexo ao Bosque Open Mall 
                   </div>
                   <a 
                     href={DOCTOR_INFO.googleMapsUrl} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="map-interactive-link" 
-                    title="Abrir localização da Clínica Medicinarte no Google Maps e iniciar rota"
+                    title="Abrir localização do Bosque Open Mall  no Google Maps e iniciar rota"
                   >
-                    Rua Antunes de Alencar, 152 – Bosque<br />
+                    Av. Getúlio Vargas, 1215 – Bosque<br />
                     Rio Branco / AC &nbsp;<span style={{ fontSize: '0.8rem', color: 'var(--accent-gold)' }}>➔ Ver no Maps</span>
                   </a>
                 </div>
@@ -1401,7 +1401,7 @@ export function PublicLandingPage() {
               {DOCTOR_INFO.crm} | {DOCTOR_INFO.rqe}
             </p>
             <p style={{ fontSize: '0.825rem', color: '#95ACA2', lineHeight: 1.5, marginTop: '0.4rem' }}>
-              <strong>MEDICINARTE SERVIÇOS MÉDICOS LTDA</strong><br />
+              <strong>CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA</strong><br />
               Registro no CRM: CRM-AC PJ 258<br />
               Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
             </p>
@@ -1451,7 +1451,7 @@ export function PublicLandingPage() {
             <h5>Localização & Contato</h5>
             <p>
               <strong style={{ color: '#FFFFFF', display: 'block', marginBottom: '0.25rem', fontSize: '0.95rem' }}>
-                Clínica Medicinarte
+                 Bosque Medical Center - Anexo ao Bosque Open Mall
               </strong>
               <a 
                 href={DOCTOR_INFO.googleMapsUrl} 
@@ -1460,9 +1460,9 @@ export function PublicLandingPage() {
                 style={{ display: 'inline', color: '#FFFFFF', textDecoration: 'underline', textUnderlineOffset: '3px' }} 
                 title="Abrir rota no Google Maps"
               >
-                Rua Antunes de Alencar, 152<br />
+                Av. Getúlio Vargas, 1215<br />
                 Bairro Bosque — Rio Branco/AC<br />
-                CEP: 69900-364 ↗
+                CEP: 69900-466 ↗
               </a>
             </p>
             <p>
@@ -1480,7 +1480,7 @@ export function PublicLandingPage() {
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; {currentYear} MEDICINARTE SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Informações em conformidade com as diretrizes do Conselho Federal de Medicina (CFM) e Lei Geral de Proteção de Dados (LGPD).</p>
+          <p>&copy; {currentYear} CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Informações em conformidade com as diretrizes do Conselho Federal de Medicina (CFM) e Lei Geral de Proteção de Dados (LGPD).</p>
         </div>
       </footer>
 

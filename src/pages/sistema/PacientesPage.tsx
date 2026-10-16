@@ -159,7 +159,7 @@ export const PacientesPage: React.FC = () => {
             </span>
             <span className="text-xs text-stone-300">•</span>
             <span className="text-xs text-stone-500 font-medium">
-              Base de Dados Unificada Medicinarte
+              Base de Dados Unificada
             </span>
           </div>
           <h1 className="font-serif font-bold text-2xl text-stone-900 tracking-tight">

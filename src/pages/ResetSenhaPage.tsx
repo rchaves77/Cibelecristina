@@ -32,7 +32,7 @@ export const ResetSenhaPage: React.FC = () => {
   const [targetPerfil, setTargetPerfil] = useState<any>(null);
 
   useEffect(() => {
-    document.title = "Redefinir Senha | Medicinarte - Dra. Cibele Cristina";
+    document.title = "Redefinir Senha | Dra. Cibele Cristina";
     window.scrollTo(0, 0);
 
     const carregarPerfil = async () => {
@@ -195,7 +195,7 @@ export const ResetSenhaPage: React.FC = () => {
                 {DOCTOR_INFO.name}
               </span>
               <span className="text-[11px] text-[#C5A059] font-medium block">
-                Sistema Clínico Medicinarte
+                Sistema Clínico Cibele Cristina
               </span>
             </div>
           </Link>
@@ -223,7 +223,7 @@ export const ResetSenhaPage: React.FC = () => {
               Nova Senha de Acesso
             </h1>
             <p className="text-xs text-[#D4AF37] font-medium mt-1">
-              MEDICINARTE SERVIÇOS MÉDICOS LTDA
+              CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA
             </p>
             <p className="text-xs text-stone-400 mt-2">
               {perfilNome 
@@ -320,7 +320,7 @@ export const ResetSenhaPage: React.FC = () => {
 
       {/* Rodapé */}
       <footer className="relative z-20 bg-[#0A1A16] border-t border-[#234E43] py-3.5 px-4 text-center text-xs text-stone-400">
-        MEDICINARTE SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078
+      Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078
       </footer>
 
     </div>

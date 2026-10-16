@@ -369,7 +369,7 @@ body {
   font-size: 1.05rem;
 }
 
-/* Pillars of MEDICINARTE */
+/* Pillars of CIBELE */
 .pillars-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));

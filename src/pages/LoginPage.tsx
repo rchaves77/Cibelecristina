@@ -61,13 +61,13 @@ export const LoginPage: React.FC = () => {
       return 'clienteboxplus@gmail.com';
     }
     if (valor === 'cibele' || valor === 'cibelemed') {
-      return 'cibele@medicinarte.com.br';
+      return 'cibele@provedor.com.br';
     }
     if (valor === 'recepcao' || valor === 'secretaria') {
-      return 'recepcao@medicinarte.com.br';
+      return 'recepcao@provedor.com.br';
     }
     if (valor === 'admin' || valor === 'cibeleadm') {
-      return 'admin@medicinarte.com.br';
+      return 'admin@provedor.com.br';
     }
     return `${valor}@sistema.local`;
   };
@@ -570,7 +570,7 @@ export const LoginPage: React.FC = () => {
       {/* Rodapé Institucional */}
       <footer className="relative z-20 border-t border-[#1E4339] bg-[#0A1A16] py-3.5 px-4 text-center text-xs text-stone-400">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px]">
-          <span>Medicinarte Serviços Médicos Ltda • CRM-AC PJ 258</span>
+          <span>Cibele Cristina Serviços Médicos Ltda • CRM-AC PJ 258</span>
           <span>Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078</span>
         </div>
       </footer>

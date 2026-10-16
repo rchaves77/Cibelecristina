@@ -902,7 +902,7 @@ export const PermissoesPage: React.FC = () => {
                             required
                             value={editEmail}
                             onChange={(e) => setEditEmail(e.target.value)}
-                            placeholder="exemplo@medicinarte.com.br"
+                            placeholder="exemplo@provedor.com.br"
                             className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34] font-medium text-stone-800"
                           />
                         </div>
@@ -1980,7 +1980,7 @@ export const PermissoesPage: React.FC = () => {
                     required
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="exemplo@medicinarte.com.br"
+                    placeholder="exemplo@provedor.com.br"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:ring-1 focus:ring-[#1A3C34] focus:border-[#1A3C34] font-medium text-stone-800"
                   />
                 </div>

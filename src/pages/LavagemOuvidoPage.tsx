@@ -99,7 +99,7 @@ export function LavagemOuvidoPage() {
           </h1>
 
           <p style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
-            Alívio imediato da sensação de ouvido tapado, som abafado e perda auditiva causada por excesso de cerúmen. Procedimento médico seguro, higiênico e indolor realizado pela <strong>Dra. Cibele Cristina</strong> no consultório da Medicinarte.
+            Alívio imediato da sensação de ouvido tapado, som abafado e perda auditiva causada por excesso de cerúmen. Procedimento médico seguro, higiênico e indolor realizado pela <strong>Dra. Cibele Cristina</strong> no consultório.
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', marginBottom: '2.5rem' }}>
@@ -292,14 +292,14 @@ export function LavagemOuvidoPage() {
 
           <div style={{ background: '#F8F9FA', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.75rem', display: 'inline-block', maxWidth: '600px', width: '100%', marginBottom: '1.5rem' }}>
             <p style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '0.2rem' }}>
-              Clínica Medicinarte
+              Clínica Própria
             </p>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.65rem' }}>
-              MEDICINARTE SERVIÇOS MÉDICOS LTDA
+              BOSQUE MEDICAL CENTER
             </p>
             <p style={{ fontSize: '0.95rem', color: '#2D3E38', lineHeight: 1.6, marginBottom: '0.75rem' }}>
-              📍 <strong>Rua Antunes de Alencar, 152 — Bairro Bosque</strong><br />
-              Rio Branco - AC • CEP: 69900-364
+              📍 <strong>Rua Av. Getúlio Vargas, 1215 — Bairro Bosque</strong><br />
+              Rio Branco - AC • CEP: 69900-466.
             </p>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
               CRM-AC PJ 258 • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078)
@@ -386,7 +386,7 @@ export function LavagemOuvidoPage() {
                 style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'contain', backgroundColor: '#FAF8F5', padding: '2px', border: '1px solid rgba(197, 160, 89, 0.4)' }}
               />
               <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem', color: '#FFFFFF', fontWeight: 700 }}>
-                MEDICINARTE
+                BOSQUE MEDICAL CENTER
               </span>
             </div>
             <p>
@@ -394,7 +394,7 @@ export function LavagemOuvidoPage() {
               {DOCTOR_INFO.crm} | {DOCTOR_INFO.rqe}
             </p>
             <p style={{ fontSize: '0.825rem', color: '#95ACA2', lineHeight: 1.5 }}>
-              <strong>MEDICINARTE SERVIÇOS MÉDICOS LTDA</strong><br />
+              <strong>CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA</strong><br />
               Registro no CRM: CRM-AC PJ 258<br />
               Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
             </p>
@@ -415,7 +415,7 @@ export function LavagemOuvidoPage() {
             <h5>Localização & Contato</h5>
             <p>
               <strong style={{ color: '#FFFFFF', display: 'block', marginBottom: '0.25rem', fontSize: '0.95rem' }}>
-                Clínica Medicinarte
+                Bosque Medical Center
               </strong>
               <a 
                 href={DOCTOR_INFO.googleMapsUrl} 
@@ -424,9 +424,9 @@ export function LavagemOuvidoPage() {
                 style={{ display: 'inline', color: '#FFFFFF', textDecoration: 'underline', textUnderlineOffset: '3px' }} 
                 title="Abrir no Google Maps"
               >
-                Rua Antunes de Alencar, 152<br />
+                Av. Getúlio Vargas, 1215<br />
                 Bairro Bosque — Rio Branco/AC<br />
-                CEP: 69900-364 ↗
+                CEP: 69900-466 ↗
               </a>
             </p>
             <p>
@@ -447,7 +447,7 @@ export function LavagemOuvidoPage() {
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} MEDICINARTE SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Procedimento ambulatorial realizado com embasamento científico e observância às normas do CFM.</p>
+          <p>&copy; {new Date().getFullYear()} CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Procedimento ambulatorial realizado com embasamento científico e observância às normas do CFM.</p>
         </div>
       </footer>
 

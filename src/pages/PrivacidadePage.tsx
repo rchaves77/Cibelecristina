@@ -4,12 +4,12 @@ import { DOCTOR_INFO } from '../data/medicinarteData';
 
 export function PrivacidadePage() {
   useEffect(() => {
-    document.title = "Política de Privacidade (LGPD) | Dra. Cibele Cristina - Medicinarte";
+    document.title = "Política de Privacidade (LGPD) | Dra. Cibele Cristina";
     window.scrollTo(0, 0);
 
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', 'Política de Privacidade e Proteção de Dados da Medicinarte Serviços Médicos Ltda e Dra. Cibele Cristina. Diretrizes de conformidade com a LGPD e Código de Ética Médica do CFM.');
+      metaDesc.setAttribute('content', 'Política de Privacidade e Proteção de Dados da Dra. Cibele Cristina. Diretrizes de conformidade com a LGPD e Código de Ética Médica do CFM.');
     }
   }, []);
 
@@ -51,7 +51,7 @@ export function PrivacidadePage() {
               Política de Privacidade e Proteção de Dados (LGPD)
             </h1>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              MEDICINARTE SERVIÇOS MÉDICOS LTDA • CRM-AC PJ 258<br />
+              CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA • CRM-AC PJ 258<br />
               Dra. Cibele Cristina Cunha Brígido — CRM-AC 1810 / RQE 1078<br />
               Última atualização: Setembro de 2026
             </p>
@@ -64,7 +64,7 @@ export function PrivacidadePage() {
                 1. Compromisso Ético e Enquadramento Legal
               </h2>
               <p>
-                A <strong>MEDICINARTE SERVIÇOS MÉDICOS LTDA</strong>, sob responsabilidade técnica da médica especialista em Medicina de Família e Comunidade <strong>Dra. Cibele Cristina</strong>, tem como pilar fundamental o respeito à dignidade humana, a confidencialidade das informações clínicas e a privacidade dos seus pacientes e usuários.
+                A <strong>CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA</strong>, sob responsabilidade técnica da médica especialista em Medicina de Família e Comunidade <strong>Dra. Cibele Cristina</strong>, tem como pilar fundamental o respeito à dignidade humana, a confidencialidade das informações clínicas e a privacidade dos seus pacientes e usuários.
               </p>
               <p>
                 Esta política foi elaborada em estrita conformidade com a <strong>Lei Geral de Proteção de Dados Pessoais (Lei Federal nº 13.709/2018 — LGPD)</strong>, o Marco Civil da Internet (Lei nº 12.965/2014) e as normas deontológicas emitidas pelo <strong>Conselho Federal de Medicina (CFM)</strong> e pelo Conselho Regional de Medicina do Estado do Acre (CRM-AC).
@@ -107,7 +107,7 @@ export function PrivacidadePage() {
                 4. Não Compartilhamento e Exceções Legais
               </h2>
               <p>
-                A Medicinarte Serviços Médicos Ltda <strong>jamais vende, aluga ou compartilha dados pessoais com empresas de publicidade ou intermediários comerciais</strong>. O compartilhamento pontual ocorre exclusivamente nas seguintes hipóteses estritas:
+                A CIBELE CRISTINA Serviços Médicos Ltda <strong>jamais vende, aluga ou compartilha dados pessoais com empresas de publicidade ou intermediários comerciais</strong>. O compartilhamento pontual ocorre exclusivamente nas seguintes hipóteses estritas:
               </p>
               <ul style={{ paddingLeft: '1.5rem', margin: '0.75rem 0' }}>
                 <li>Com farmácias ou laboratórios, estritamente quando o paciente apresenta a receita digital ou encaminhamento para validar o atendimento.</li>
@@ -148,9 +148,9 @@ export function PrivacidadePage() {
                 Para exercer seus direitos de titular ou esclarecer qualquer dúvida sobre o tratamento de suas informações, você pode entrar em contato diretamente conosco:
               </p>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
-                <strong style={{ fontSize: '1.05rem', color: 'var(--accent)' }}>Clínica Medicinarte</strong><br />
-                <strong>MEDICINARTE SERVIÇOS MÉDICOS LTDA</strong><br />
-                📍 Rua Antunes de Alencar, 152 — Bairro Bosque, Rio Branco/AC • CEP: 69900-364<br />
+                <strong style={{ fontSize: '1.05rem', color: 'var(--accent)' }}>Bosque Medical Center </strong><br />
+                <strong>CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA</strong><br />
+                📍 Av. Getúlio Vargas, 1215, — Bairro Bosque, Rio Branco/AC • CEP: 69900-466<br />
                 📱 WhatsApp: <strong>{DOCTOR_INFO.phone}</strong><br />
                 Responsável Técnica: <strong>Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078</strong>
               </p>
@@ -170,7 +170,7 @@ export function PrivacidadePage() {
       {/* Footer */}
       <footer className="site-footer">
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} MEDICINARTE SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Tratamento ético de dados em conformidade com a LGPD e o Código de Ética Médica.</p>
+          <p>&copy; {new Date().getFullYear()} CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Tratamento ético de dados em conformidade com a LGPD e o Código de Ética Médica.</p>
         </div>
       </footer>
 
