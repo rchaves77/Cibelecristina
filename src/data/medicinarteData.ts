@@ -60,16 +60,16 @@ export interface FAQItemData {
 }
 
 export const DOCTOR_INFO = {
-  name: 'Dra. Cibele Cristina',
+  name: 'Drª. Cibele Cristina',
   prefix: 'Drª',
-  fullName: 'Dra. Cibele Cristina Cunha Brígido',
+  fullName: 'Drª. Cibele Cristina Cunha Brígido',
   crm: 'CRM-AC 1810',
   rqe: 'RQE 1078',
   specialty: 'Medicina de Família e Comunidade',
   clinicName: 'Clínica Medicinarte',
   clinicLegalName: 'MEDICINARTE SERVIÇOS MÉDICOS LTDA',
   clinicCrmPj: 'CRM-AC PJ 258',
-  technicalDirector: 'Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078',
+  technicalDirector: 'Drª. Cibele Cristina — CRM-AC 1810 / RQE 1078',
   phone: '(68) 98103-4408',
   whatsappNumber: '5568981034408',
   address: 'Rua Antunes de Alencar, 152 – Bosque, Rio Branco / AC, CEP: 69900-364',

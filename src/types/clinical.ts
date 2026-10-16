@@ -145,7 +145,8 @@ export interface PrescricaoItem {
   nome: string;
   posologia_ou_instrucao: string;
   quantidade?: string;
-  via?: string; // "Oral", "Tópico", "Nasal", "Otológico", etc.
+  via?: string; // "Oral", "Tópico", "Nasal", "Otológico", "Inalatório", etc.
+  duracao?: string; // "Uso contínuo", "Por 7 dias", "Por 14 dias", etc.
 }
 
 export interface PrescricaoTemplate {

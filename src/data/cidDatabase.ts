@@ -1249,8 +1249,7 @@ export async function loadFullCidDatabase(): Promise<CidItem[]> {
 
     fullCidCache = fullList;
     return fullList;
-  } catch (error) {
-    console.warn('Aviso: Utilizando banco essencial de CID-10.', error);
+  } catch {
     fullCidCache = CID_DATABASE;
     return CID_DATABASE;
   } finally {

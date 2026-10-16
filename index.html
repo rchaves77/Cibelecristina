@@ -53,20 +53,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <!-- Google Tag & Analytics DataLayer Setup para mensuração de conversões 001 -->
+    <!-- In-memory Safe DataLayer Fallback -->
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      // Suporte dinâmico a ID do Google Analytics configurável
-      var gaId = window.VITE_GA_ID || (window.localStorage && window.localStorage.getItem('GA_MEASUREMENT_ID'));
-      if (gaId) {
-        var gaScript = document.createElement('script');
-        gaScript.async = true;
-        gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
-        document.head.appendChild(gaScript);
-        gtag('config', gaId);
-      }
+      window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
     </script>
   </head>
   <body>

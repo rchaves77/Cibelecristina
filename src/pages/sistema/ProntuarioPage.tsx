@@ -48,8 +48,14 @@ import {
   ValidacaoAtestado
 } from '../../types/clinical';
 import { CidAutocompleteInput } from '../../components/common/CidAutocompleteInput';
+import { FrasesEvolucaoModal } from '../../components/sistema/FrasesEvolucaoModal';
+import { EmbeddedPrescricaoSection } from '../../components/sistema/EmbeddedPrescricaoSection';
+import { EmbeddedAtestadoSection } from '../../components/sistema/EmbeddedAtestadoSection';
+import { LinearAnexosSection } from '../../components/sistema/LinearAnexosSection';
+import { LinearTimelineAtendimentos } from '../../components/sistema/LinearTimelineAtendimentos';
 import { resolveCidString } from '../../data/cidDatabase';
 import { DOCTOR_INFO } from '../../data/medicinarteData';
+import { generatePrescricaoPdf, generateAtestadoPdf } from '../../utils/pdfGenerator';
 
 export const ProntuarioPage: React.FC = () => {
   const { patientId } = useParams<{ patientId?: string }>();
@@ -85,26 +91,50 @@ export const ProntuarioPage: React.FC = () => {
   const [adendoTexto, setAdendoTexto] = useState('');
   const [adendoMotivo, setAdendoMotivo] = useState('');
 
-  // Modal de Novo Anexo (Exames, ECG, Fotos, Laudos)
-  const [showNovoAnexoModal, setShowNovoAnexoModal] = useState(false);
-  const [novoAnexo, setNovoAnexo] = useState<{
-    nome_arquivo: string;
-    categoria: AnexoProntuario['categoria'];
-    observacoes: string;
-    tamanho_formatado: string;
-    preview_url?: string;
-  }>({
-    nome_arquivo: '',
-    categoria: 'Exame Laboratorial',
-    observacoes: '',
-    tamanho_formatado: '450 KB'
-  });
+
+
+  // Modal de Frases e Modelos Rápidos de Evolução (Atalho Ctrl + Espaço)
+  const [showFrasesModal, setShowFrasesModal] = useState(false);
+  const [focusedSoapField, setFocusedSoapField] = useState<'subjetivo' | 'objetivo' | 'avaliacao' | 'plano'>('subjetivo');
+
+  // Atalho de Teclado Global/Local Ctrl + Espaço para abrir quadro de Frases de Evolução
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.code === 'Space') {
+        if (canAccessSoap) {
+          e.preventDefault();
+          setShowFrasesModal(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canAccessSoap]);
+
+  const handleInsertFraseFromModal = (
+    conteudo: string,
+    targetField?: 'subjetivo' | 'objetivo' | 'avaliacao' | 'plano'
+  ) => {
+    const field = targetField || focusedSoapField || 'subjetivo';
+    setNovaEvolucao((prev) => {
+      const existing = prev[field];
+      const updated =
+        existing && existing.trim().length > 0
+          ? `${existing.trim()}\n\n${conteudo}`
+          : conteudo;
+      return {
+        ...prev,
+        [field]: updated
+      };
+    });
+    setFeedback('Modelo de frase inserido na evolução com sucesso!');
+    setTimeout(() => setFeedback(''), 2500);
+  };
 
   // Visualizador Simulado de Anexo / Foto Ampliada
   const [viewingAnexo, setViewingAnexo] = useState<AnexoProntuario | null>(null);
 
   const [feedback, setFeedback] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reloadData = () => {
     const user = clinicalDb.getActiveUser();
@@ -240,70 +270,7 @@ export const ProntuarioPage: React.FC = () => {
     setTimeout(() => setFeedback(''), 4000);
   };
 
-  // Upload de Anexo com Suporte a Foto / Imagem / Documentos
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    const sizeKb = Math.round(file.size / 1024);
-    const sizeStr = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
-
-    let categoria: AnexoProntuario['categoria'] = 'Exame Laboratorial';
-    const lower = file.name.toLowerCase();
-    if (lower.includes('ecg') || lower.includes('eletro')) categoria = 'Eletrocardiograma (ECG)';
-    else if (lower.includes('laudo') || lower.includes('raio') || lower.includes('tc') || lower.includes('ressonancia') || lower.includes('ultra')) categoria = 'Laudo de Imagem';
-    else if (lower.includes('foto') || lower.includes('lesao') || lower.includes('pele') || lower.endsWith('.jpg') || lower.endsWith('.png') || lower.endsWith('.jpeg')) categoria = 'Foto Clínica / Lesão';
-    else if (lower.includes('termo') || lower.includes('consentimento')) categoria = 'Documento / Termo';
-
-    // Cria URL de preview temporária para imagens
-    let previewUrl: string | undefined = undefined;
-    if (file.type.startsWith('image/')) {
-      previewUrl = URL.createObjectURL(file);
-    }
-
-    setNovoAnexo({
-      nome_arquivo: file.name,
-      categoria,
-      observacoes: '',
-      tamanho_formatado: sizeStr,
-      preview_url: previewUrl
-    });
-  };
-
-  const handleSaveAnexo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPaciente || !novoAnexo.nome_arquivo.trim()) return;
-
-    clinicalDb.saveAnexo({
-      paciente_id: selectedPaciente.id,
-      nome_arquivo: novoAnexo.nome_arquivo.trim(),
-      categoria: novoAnexo.categoria,
-      tamanho_formatado: novoAnexo.tamanho_formatado,
-      tipo_mime: novoAnexo.nome_arquivo.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
-      enviado_por: currentUser.nome,
-      observacoes: novoAnexo.observacoes.trim() || undefined
-    });
-
-    setShowNovoAnexoModal(false);
-    setNovoAnexo({
-      nome_arquivo: '',
-      categoria: 'Exame Laboratorial',
-      observacoes: '',
-      tamanho_formatado: '450 KB'
-    });
-    setFeedback('Exame / foto anexado com sucesso ao prontuário!');
-    reloadData();
-    setTimeout(() => setFeedback(''), 4000);
-  };
-
-  const handleDeleteAnexo = (id: string, nomeArquivo: string) => {
-    if (window.confirm(`Deseja realmente remover o anexo "${nomeArquivo}" do prontuário?`)) {
-      clinicalDb.deleteAnexo(id);
-      setFeedback('Anexo removido do prontuário.');
-      reloadData();
-      setTimeout(() => setFeedback(''), 4000);
-    }
-  };
 
   const handlePrintPEP = () => {
     if (!selectedPaciente) return;
@@ -378,27 +345,50 @@ export const ProntuarioPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ATALHOS RAPIDOS DO ATENDIMENTO */}
+        {/* BOTÕES DE AÇÃO RÁPIDA NO TOPO DO PRONTUÁRIO */}
         <div className="flex items-center gap-2 flex-wrap">
+          {canAccessSoap && (
+            <button
+              type="button"
+              onClick={() => document.getElementById('secao-evolucao')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition-all cursor-pointer"
+            >
+              <HeartPulse size={14} className="text-emerald-700" />
+              <span>Registrar Evolução</span>
+            </button>
+          )}
+
           {canPrescribe && (
-            <Link
-              to="/sistema/prescricoes"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition-all cursor-pointer"
+            <button
+              type="button"
+              onClick={() => document.getElementById('secao-prescricoes')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition-all cursor-pointer"
             >
               <FileText size={14} className="text-[#1A3C34]" />
-              <span>Emitir Receita</span>
-            </Link>
+              <span>Prescrever Receita</span>
+            </button>
           )}
 
           {canIssueCertificates && (
-            <Link
-              to="/sistema/atestados"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition-all cursor-pointer"
+            <button
+              type="button"
+              onClick={() => document.getElementById('secao-atestados')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#C5A059] hover:bg-[#b58f4a] text-[#0E231E] text-xs font-bold transition-all cursor-pointer shadow-xs"
+              title="Ação Rápida: Gerar Atestado Médico ou Declaração com QR Code"
             >
-              <Award size={14} className="text-[#C5A059]" />
-              <span>Emitir Atestado</span>
-            </Link>
+              <Award size={15} />
+              <span>Gerar Atestado / Declaração</span>
+            </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => document.getElementById('secao-anexos')?.scrollIntoView({ behavior: 'smooth' })}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition-all cursor-pointer"
+          >
+            <Paperclip size={14} className="text-blue-700" />
+            <span>Anexar Exame</span>
+          </button>
 
           <button
             type="button"
@@ -521,33 +511,137 @@ export const ProntuarioPage: React.FC = () => {
         </div>
       </div>
 
+      {/* BARRA DE ATENDIMENTO MÉDICO LINEAR UNIFICADO */}
+      <div className="sticky top-16 z-20 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-stone-200 shadow-sm print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-[#1A3C34] text-white flex items-center justify-center font-bold text-xs">
+              ⚡
+            </div>
+            <span className="font-bold text-xs text-stone-800">
+              Fluxo Linear de Atendimento:
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none text-xs">
+            <button
+              type="button"
+              onClick={() => document.getElementById('secao-evolucao')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-3 py-1.5 rounded-xl bg-[#1A3C34] text-white font-bold hover:brightness-110 transition-all cursor-pointer shadow-2xs whitespace-nowrap"
+            >
+              1. Evolução SOAP
+            </button>
+            <span className="text-stone-300">→</span>
+
+            <button
+              type="button"
+              onClick={() => document.getElementById('secao-prescricoes')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1"
+            >
+              <span>2. Prescrições & Receitas</span>
+              {prescricoesDoPaciente.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                  {prescricoesDoPaciente.length}
+                </span>
+              )}
+            </button>
+            <span className="text-stone-300">→</span>
+
+            <button
+              type="button"
+              onClick={() => document.getElementById('secao-atestados')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1"
+            >
+              <span>3. Atestados & Declarações</span>
+              {atestadosDoPaciente.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-[#C5A059]/20 text-[#8F7030] text-[10px] font-bold">
+                  {atestadosDoPaciente.length}
+                </span>
+              )}
+            </button>
+            <span className="text-stone-300">→</span>
+
+            <button
+              type="button"
+              onClick={() => document.getElementById('secao-anexos')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1"
+            >
+              <span>4. Anexos & Exames</span>
+              {anexosDoPaciente.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">
+                  {anexosDoPaciente.length}
+                </span>
+              )}
+            </button>
+            <span className="text-stone-300">→</span>
+
+            <button
+              type="button"
+              onClick={() => document.getElementById('secao-historico')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold transition-all cursor-pointer whitespace-nowrap"
+            >
+              5. Histórico Clínico ({prontuariosDoPaciente.length})
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* BLOCO 1: FORMULÁRIO DE NOVA EVOLUÇÃO CLÍNICA (SOAP) */}
       {canAccessSoap ? (
-        <form onSubmit={handleAddEvolucao} className="bg-white rounded-3xl border border-stone-200 p-6 shadow-2xs space-y-6 print:hidden">
-          <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+        <form id="secao-evolucao" onSubmit={handleAddEvolucao} className="bg-white rounded-3xl border border-stone-200 p-6 shadow-2xs space-y-6 print:hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-stone-100 pb-4 gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-[#1A3C34] text-white flex items-center justify-center">
                 <HeartPulse size={16} />
               </div>
-              <h2 className="font-serif font-bold text-lg text-stone-900">
-                REGISTRAR NOVA EVOLUÇÃO CLÍNICA (METODOLOGIA SOAP)
-              </h2>
+              <div>
+                <h2 className="font-serif font-bold text-lg text-stone-900 leading-tight">
+                  REGISTRAR NOVA EVOLUÇÃO CLÍNICA (METODOLOGIA SOAP)
+                </h2>
+                <p className="text-xs text-stone-500">Pressione <kbd className="px-1.5 py-0.5 bg-stone-100 border border-stone-300 rounded-md font-mono text-[10px] text-stone-800 font-bold">Ctrl + Espaço</kbd> a qualquer momento para abrir frases salvas</p>
+              </div>
             </div>
-            <span className="text-[11px] font-medium text-stone-400 bg-stone-100 px-2.5 py-1 rounded-full">
-              Registro Imutável CFM
-            </span>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowFrasesModal(true)}
+                className="px-3.5 py-2 rounded-xl bg-[#C5A059] hover:bg-[#b08e4c] text-[#0E231E] font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                title="Abrir quadro de frases rápidas e modelos salvos (Ctrl + Espaço)"
+              >
+                <Sparkles size={15} />
+                <span>Modelos Rápidos (Ctrl+Espaço)</span>
+              </button>
+              <span className="text-[11px] font-medium text-stone-400 bg-stone-100 px-2.5 py-1.5 rounded-full hidden md:inline-block">
+                Registro Imutável CFM
+              </span>
+            </div>
           </div>
 
           {/* 4 BLOCOS VERTICAIS SOAP - UM POR LINHA (LARGURA TOTAL PARA CONFORTO) */}
           <div className="flex flex-col gap-5">
             {/* S - SUBJETIVO */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-stone-800">
-                S – Subjetivo <span className="font-normal text-stone-500">(Queixa principal, história clínica, sintomas relatados)</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-stone-800">
+                  S – Subjetivo <span className="font-normal text-stone-500">(Queixa principal, história clínica, sintomas relatados)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFocusedSoapField('subjetivo');
+                    setShowFrasesModal(true);
+                  }}
+                  className="text-[11px] text-[#1A3C34] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <Sparkles size={13} className="text-[#C5A059]" />
+                  <span>Modelos S (Ctrl+Espaço)</span>
+                </button>
+              </div>
               <textarea
                 rows={5}
                 value={novaEvolucao.subjetivo}
+                onFocus={() => setFocusedSoapField('subjetivo')}
                 onChange={(e) => setNovaEvolucao({ ...novaEvolucao, subjetivo: e.target.value })}
                 placeholder="Relato trazido pelo paciente sobre sua queixa, evolução dos sintomas, sono, hábitos..."
                 className="w-full p-3.5 bg-stone-50/80 text-sm text-stone-800 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C34]/20 focus:border-[#1A3C34] transition-all resize-y min-h-[130px]"
@@ -556,12 +650,26 @@ export const ProntuarioPage: React.FC = () => {
 
             {/* O - OBJETIVO */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-stone-800">
-                O – Objetivo <span className="font-normal text-stone-500">(Exame físico, PA, FC, Otoscopia, ausculta, IMC)</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-stone-800">
+                  O – Objetivo <span className="font-normal text-stone-500">(Exame físico, PA, FC, Otoscopia, ausculta, IMC)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFocusedSoapField('objetivo');
+                    setShowFrasesModal(true);
+                  }}
+                  className="text-[11px] text-[#1A3C34] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <Sparkles size={13} className="text-[#C5A059]" />
+                  <span>Modelos O (Ctrl+Espaço)</span>
+                </button>
+              </div>
               <textarea
                 rows={5}
                 value={novaEvolucao.objetivo}
+                onFocus={() => setFocusedSoapField('objetivo')}
                 onChange={(e) => setNovaEvolucao({ ...novaEvolucao, objetivo: e.target.value })}
                 placeholder="Achados do exame físico: PA 120/80 mmHg, FC 72 bpm, Otoscopia sem cerúmen obstrutivo..."
                 className="w-full p-3.5 bg-stone-50/80 text-sm text-stone-800 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C34]/20 focus:border-[#1A3C34] transition-all resize-y min-h-[130px]"
@@ -570,12 +678,26 @@ export const ProntuarioPage: React.FC = () => {
 
             {/* A - AVALIAÇÃO */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-stone-800">
-                A – Avaliação <span className="font-normal text-stone-500">(Raciocínio clínico, hipóteses e diagnósticos)</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-stone-800">
+                  A – Avaliação <span className="font-normal text-stone-500">(Raciocínio clínico, hipóteses e diagnósticos)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFocusedSoapField('avaliacao');
+                    setShowFrasesModal(true);
+                  }}
+                  className="text-[11px] text-[#1A3C34] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <Sparkles size={13} className="text-[#C5A059]" />
+                  <span>Modelos A (Ctrl+Espaço)</span>
+                </button>
+              </div>
               <textarea
                 rows={5}
                 value={novaEvolucao.avaliacao}
+                onFocus={() => setFocusedSoapField('avaliacao')}
                 onChange={(e) => setNovaEvolucao({ ...novaEvolucao, avaliacao: e.target.value })}
                 placeholder="Interpretação clínica, estabilidade de patologias prévias e raciocínio diagnóstico..."
                 className="w-full p-3.5 bg-stone-50/80 text-sm text-stone-800 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C34]/20 focus:border-[#1A3C34] transition-all resize-y min-h-[130px]"
@@ -584,12 +706,26 @@ export const ProntuarioPage: React.FC = () => {
 
             {/* P - PLANO */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-stone-800">
-                P – Plano <span className="font-normal text-stone-500">(Conduta, prescrições, pedidos de exame, retorno)</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-stone-800">
+                  P – Plano <span className="font-normal text-stone-500">(Conduta, prescrições, pedidos de exame, retorno)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFocusedSoapField('plano');
+                    setShowFrasesModal(true);
+                  }}
+                  className="text-[11px] text-[#1A3C34] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <Sparkles size={13} className="text-[#C5A059]" />
+                  <span>Modelos P (Ctrl+Espaço)</span>
+                </button>
+              </div>
               <textarea
                 rows={5}
                 value={novaEvolucao.plano}
+                onFocus={() => setFocusedSoapField('plano')}
                 onChange={(e) => setNovaEvolucao({ ...novaEvolucao, plano: e.target.value })}
                 placeholder="Plano terapêutico pactuado com o paciente, exames solicitados, orientações e prazo de retorno..."
                 className="w-full p-3.5 bg-stone-50/80 text-sm text-stone-800 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C34]/20 focus:border-[#1A3C34] transition-all resize-y min-h-[130px]"
@@ -642,332 +778,79 @@ export const ProntuarioPage: React.FC = () => {
         </div>
       )}
 
-      {/* BLOCO 2: HISTÓRICO DE EVOLUÇÕES E CONSULTAS */}
-      <div className="bg-white rounded-3xl border border-stone-200 p-6 shadow-2xs space-y-5">
-        <div className="flex items-center justify-between border-b border-stone-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <History size={18} className="text-[#1A3C34]" />
-            <h2 className="font-serif font-bold text-lg text-stone-900">
-              HISTÓRICO DE EVOLUÇÕES E CONSULTAS ({prontuariosDoPaciente.length})
-            </h2>
-          </div>
+      {/* BLOCO 2: PRESCRIÇÕES & RECEITUÁRIOS MÉDICOS (EMBUTIDO NO ATENDIMENTO) */}
+      {selectedPaciente && canPrescribe && (
+        <EmbeddedPrescricaoSection
+          paciente={selectedPaciente}
+          canPrescribe={canPrescribe}
+          prescricoesDoPaciente={prescricoesDoPaciente}
+          onPrescricaoSaved={reloadData}
+        />
+      )}
 
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-            <ShieldCheck size={12} /> Imutabilidade CFM Res. 1.821
-          </span>
-        </div>
+      {/* BLOCO 3: ATESTADOS MÉDICOS, DECLARAÇÕES & LAUDOS COM QR CODE (EMBUTIDO NO ATENDIMENTO) */}
+      {selectedPaciente && canIssueCertificates && (
+        <EmbeddedAtestadoSection
+          paciente={selectedPaciente}
+          canIssueCertificates={canIssueCertificates}
+          atestadosDoPaciente={atestadosDoPaciente}
+          onAtestadoSaved={reloadData}
+        />
+      )}
 
-        {prontuariosDoPaciente.length > 0 ? (
-          <div className="space-y-4">
-            {prontuariosDoPaciente.map((pr) => (
-              <div
-                key={pr.id}
-                className="bg-stone-50/80 rounded-2xl border border-stone-200 p-5 space-y-3 relative overflow-hidden"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/60 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-stone-900 font-serif">
-                      {pr.profissional_nome || DOCTOR_INFO.fullName}
-                    </span>
-                    <span className="text-xs text-stone-400">•</span>
-                    <span className="text-xs text-stone-500 font-mono">
-                      {new Date(pr.data_hora).toLocaleDateString('pt-BR')} às {new Date(pr.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
+      {/* BLOCO 4: ANEXOS DO PRONTUÁRIO — DRAG AND DROP & CATEGORIZAÇÃO */}
+      {selectedPaciente && (
+        <LinearAnexosSection
+          paciente={selectedPaciente}
+          anexos={anexosDoPaciente}
+          currentUserNome={currentUser.nome}
+          onAnexoUpdated={reloadData}
+          onViewAnexo={(anx) => setViewingAnexo(anx)}
+        />
+      )}
 
-                  {canAccessSoap && (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAdendoModal(pr)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1A3C34] bg-white border border-[#1A3C34]/30 px-2.5 py-1 rounded-xl hover:bg-[#1A3C34] hover:text-white transition-colors cursor-pointer shrink-0 print:hidden"
-                    >
-                      <History size={12} />
-                      <span>+ Adendo CFM</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* DETALHES SOAP */}
-                {canAccessSoap ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    {pr.subjetivo && (
-                      <div className="p-3 bg-white rounded-xl border border-stone-100">
-                        <span className="font-bold text-stone-800 block mb-1">S – Subjetivo:</span>
-                        <p className="text-stone-700 whitespace-pre-wrap">{pr.subjetivo}</p>
-                      </div>
-                    )}
-                    {pr.objetivo && (
-                      <div className="p-3 bg-white rounded-xl border border-stone-100">
-                        <span className="font-bold text-stone-800 block mb-1">O – Objetivo:</span>
-                        <p className="text-stone-700 whitespace-pre-wrap">{pr.objetivo}</p>
-                      </div>
-                    )}
-                    {pr.avaliacao && (
-                      <div className="p-3 bg-white rounded-xl border border-stone-100">
-                        <span className="font-bold text-stone-800 block mb-1">A – Avaliação:</span>
-                        <p className="text-stone-700 whitespace-pre-wrap">{pr.avaliacao}</p>
-                      </div>
-                    )}
-                    {pr.plano && (
-                      <div className="p-3 bg-white rounded-xl border border-stone-100">
-                        <span className="font-bold text-stone-800 block mb-1">P – Plano:</span>
-                        <p className="text-stone-700 whitespace-pre-wrap">{pr.plano}</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-3 bg-amber-50/60 text-amber-900 rounded-xl text-xs font-medium">
-                    Atendimento registrado em prontuário eletrônico. Conteúdo reservado ao corpo médico.
-                  </div>
-                )}
-
-                {pr.diagnostico_cid && canAccessSoap && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <span className="text-xs font-bold text-stone-700">Diagnóstico Conclusivo:</span>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#C5A059]/15 text-[#8F7030]">
-                      {pr.diagnostico_cid}
-                    </span>
-                  </div>
-                )}
-
-                {/* ADENDOS CFM REGISTRADOS */}
-                {pr.adendos && pr.adendos.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-amber-200/80 space-y-2 bg-amber-50/50 p-3 rounded-xl">
-                    <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider block">
-                      Adendos & Retificações CFM ({pr.adendos.length})
-                    </span>
-                    {pr.adendos.map((ad, idx) => (
-                      <div key={idx} className="text-xs space-y-0.5 text-amber-950 bg-white/80 p-2.5 rounded-lg border border-amber-200">
-                        <div className="flex items-center justify-between text-[11px] font-semibold text-amber-900">
-                          <span>{ad.autor_nome} ({ad.autor_crm})</span>
-                          <span className="font-mono text-[10px]">
-                            {new Date(ad.data_hora).toLocaleDateString('pt-BR')} às {new Date(ad.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <p className="text-stone-800 mt-1 whitespace-pre-wrap">{ad.texto}</p>
-                        <p className="text-[10px] text-stone-500 italic mt-0.5">
-                          Motivo oficial: {ad.motivo_retificacao}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-stone-500 italic py-4">
-            Nenhuma evolução médica registrada anteriormente para este paciente.
-          </p>
-        )}
-      </div>
-
-      {/* BLOCO 3: ANEXOS DO PRONTUÁRIO (EXAMES, LAUDOS, ECG E FOTOS) */}
-      <div className="bg-white rounded-3xl border border-stone-200 p-6 shadow-2xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <Paperclip size={18} className="text-[#1A3C34]" />
-            <div>
-              <h2 className="font-serif font-bold text-lg text-stone-900">
-                ANEXOS DO PRONTUÁRIO — EXAMES, LAUDOS, ECG E FOTOS ({anexosDoPaciente.length})
-              </h2>
-              <p className="text-xs text-stone-500">
-                Armazenamento de PDFs laboratoriais, imagens de otoscopia, ECG de repouso, fotos de lesões e laudos externos.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowNovoAnexoModal(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer print:hidden shrink-0"
-          >
-            <Upload size={16} />
-            <span>+ Anexar Exame / Documento</span>
-          </button>
-        </div>
-
-        {anexosDoPaciente.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {anexosDoPaciente.map((anx) => {
-              const isImage = anx.tipo_mime?.startsWith('image/') ||
-                anx.nome_arquivo.endsWith('.jpg') ||
-                anx.nome_arquivo.endsWith('.png') ||
-                anx.nome_arquivo.endsWith('.jpeg');
-
-              return (
-                <div
-                  key={anx.id}
-                  className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col justify-between space-y-3 hover:border-stone-300 transition-all"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-stone-200 flex items-center justify-center shrink-0 shadow-2xs">
-                      {isImage ? (
-                        <ImageIcon size={20} className="text-emerald-700" />
-                      ) : (
-                        <FileText size={20} className="text-blue-700" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-bold text-xs text-stone-900 truncate" title={anx.nome_arquivo}>
-                        {anx.nome_arquivo}
-                      </h4>
-                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-stone-200 text-stone-700 mt-1">
-                        {anx.categoria}
-                      </span>
-                      {anx.observacoes && (
-                        <p className="text-[11px] text-stone-600 mt-1.5 line-clamp-2">
-                          {anx.observacoes}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] text-stone-400 pt-2 border-t border-stone-200/60">
-                    <span>{anx.tamanho_formatado || '450 KB'} • {new Date(anx.data_upload).toLocaleDateString('pt-BR')}</span>
-
-                    <div className="flex items-center gap-2 print:hidden">
-                      <button
-                        type="button"
-                        onClick={() => setViewingAnexo(anx)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#1A3C34] hover:underline cursor-pointer"
-                      >
-                        <Eye size={13} /> Ver
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteAnexo(anx.id, anx.nome_arquivo)}
-                        className="p-1 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
-                        title="Remover anexo"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-xs text-stone-500 italic py-4">
-            Nenhum exame, laudo ou foto anexado ao prontuário deste paciente ainda.
-          </p>
-        )}
-      </div>
-
-      {/* BLOCO 4: RECEITUÁRIOS & PRESCRIÇÕES EMITIDAS */}
-      <div className="bg-white rounded-3xl border border-stone-200 p-6 shadow-2xs space-y-4 print:hidden">
-        <div className="flex items-center justify-between border-b border-stone-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <FileCheck size={18} className="text-[#1A3C34]" />
-            <h2 className="font-serif font-bold text-lg text-stone-900">
-              RECEITUÁRIOS & PRESCRIÇÕES EMITIDAS ({prescricoesDoPaciente.length})
-            </h2>
-          </div>
-
-          {canPrescribe && (
-            <Link
-              to="/sistema/prescricoes"
-              className="text-xs font-bold text-[#1A3C34] hover:underline inline-flex items-center gap-1"
-            >
-              <span>+ Nova Receita</span>
-              <ChevronRight size={14} />
-            </Link>
-          )}
-        </div>
-
-        {prescricoesDoPaciente.length > 0 ? (
-          <div className="space-y-3">
-            {prescricoesDoPaciente.map((pr) => (
-              <div key={pr.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-stone-900">
-                      {pr.tipo_receita === 'Controle Especial' ? '💊 Controle Especial (Receita Branca 2 Vias)' : '📄 Receituário Simples'}
-                    </span>
-                    <span className="text-xs font-mono text-stone-400">
-                      {new Date(pr.created_at).toLocaleDateString('pt-BR')}
-                    </span>
-                  </div>
-                  <p className="text-xs text-stone-600 mt-1">
-                    {pr.itens.map(i => i.nome).join(', ')}
-                  </p>
-                </div>
-
-                <Link
-                  to="/sistema/prescricoes"
-                  className="px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-xs font-semibold text-stone-800 hover:bg-stone-100 transition-colors shrink-0"
-                >
-                  Ver no Módulo
-                </Link>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-stone-500 italic">
-            Nenhuma receita gerada para este paciente no sistema ainda.
-          </p>
-        )}
-      </div>
-
-      {/* BLOCO 5: ATESTADOS E ACOMPANHAMENTOS DE DOENTE */}
-      <div className="bg-white rounded-3xl border border-stone-200 p-6 shadow-2xs space-y-4 print:hidden">
-        <div className="flex items-center justify-between border-b border-stone-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <Award size={18} className="text-[#C5A059]" />
-            <h2 className="font-serif font-bold text-lg text-stone-900">
-              ATESTADOS E DECLARAÇÕES EMITIDAS ({atestadosDoPaciente.length})
-            </h2>
-          </div>
-
-          {canIssueCertificates && (
-            <Link
-              to="/sistema/atestados"
-              className="text-xs font-bold text-[#1A3C34] hover:underline inline-flex items-center gap-1"
-            >
-              <span>+ Novo Atestado</span>
-              <ChevronRight size={14} />
-            </Link>
-          )}
-        </div>
-
-        {atestadosDoPaciente.length > 0 ? (
-          <div className="space-y-3">
-            {atestadosDoPaciente.map((at) => (
-              <div key={at.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-stone-900">
-                      {at.tipo_documento}
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-stone-200 text-stone-700">
-                      {at.hash_autenticidade}
-                    </span>
-                  </div>
-                  <p className="text-xs text-stone-600 mt-1 line-clamp-2">
-                    {at.conteudo_texto}
-                  </p>
-                </div>
-
-                <a
-                  href={`/validar/${at.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-xs font-semibold text-[#1A3C34] hover:bg-stone-100 transition-colors inline-flex items-center gap-1 shrink-0"
-                >
-                  <ExternalLink size={12} />
-                  <span>Validar QR Code</span>
-                </a>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-stone-500 italic">
-            Nenhum atestado ou declaração de acompanhamento emitido para este paciente ainda.
-          </p>
-        )}
-      </div>
+      {/* BLOCO 5: HISTÓRICO INTEGRADO DE ATENDIMENTOS PASSADOS (TIMELINE VERTICAL) */}
+      {selectedPaciente && (
+        <LinearTimelineAtendimentos
+          prontuarios={prontuariosDoPaciente}
+          prescricoes={prescricoesDoPaciente}
+          atestados={atestadosDoPaciente}
+          anexos={anexosDoPaciente}
+          canAccessSoap={canAccessSoap}
+          onOpenAdendoModal={handleOpenAdendoModal}
+          onRepetirPrescricao={(presc) => {
+            document.getElementById('secao-prescricoes')?.scrollIntoView({ behavior: 'smooth' });
+            setFeedback(`Itens da receita de ${new Date(presc.created_at).toLocaleDateString('pt-BR')} prontos no formulário.`);
+            setTimeout(() => setFeedback(''), 3000);
+          }}
+          onReimprimirPrescricao={async (presc) => {
+            try {
+              await generatePrescricaoPdf({
+                pacienteNome: selectedPaciente.nome,
+                tipo: presc.tipo,
+                itens: presc.itens,
+                observacoes: presc.observacoes,
+                dataEmissao: new Date(presc.created_at).toLocaleDateString('pt-BR')
+              });
+            } catch (err) {
+              console.error(err);
+              alert('Erro ao reemitir PDF da prescrição.');
+            }
+          }}
+          onReimprimirAtestado={async (at) => {
+            try {
+              await generateAtestadoPdf({
+                validacao: at,
+                baseUrl: window.location.origin
+              });
+            } catch (err) {
+              console.error(err);
+              alert('Erro ao gerar PDF do atestado.');
+            }
+          }}
+          onViewAnexo={(anx) => setViewingAnexo(anx)}
+        />
+      )}
 
       {/* MODAL DE ADENDO CFM */}
       {showAdendoModal && selectedProntuarioForAdendo && (
@@ -1042,113 +925,7 @@ export const ProntuarioPage: React.FC = () => {
       )}
 
       {/* MODAL NOVO ANEXO / FOTO / DOCUMENTO */}
-      {showNovoAnexoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in print:hidden">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden">
-            <div className="p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50">
-              <div className="flex items-center gap-2.5">
-                <Upload size={18} className="text-[#1A3C34]" />
-                <h3 className="font-serif font-bold text-base text-stone-900">
-                  Anexar Exame, Laudo ou Foto
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNovoAnexoModal(false)}
-                className="p-2 text-stone-400 hover:text-stone-600 rounded-xl"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
-            <form onSubmit={handleSaveAnexo} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-800">
-                  Selecionar Arquivo ou Foto *
-                </label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/*,application/pdf"
-                  className="hidden"
-                />
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-5 border-2 border-dashed border-stone-300 hover:border-[#1A3C34] rounded-2xl text-center cursor-pointer bg-stone-50 hover:bg-stone-100 transition-colors space-y-1"
-                >
-                  <Upload size={24} className="mx-auto text-stone-400" />
-                  <p className="text-xs font-semibold text-stone-700">
-                    Clique para selecionar foto, PDF ou exame
-                  </p>
-                  <p className="text-[10px] text-stone-400">
-                    Suporta imagens (JPG, PNG) e arquivos PDF até 10MB
-                  </p>
-                </div>
-              </div>
-
-              {novoAnexo.nome_arquivo && (
-                <div className="p-3 bg-stone-100 rounded-xl text-xs space-y-1">
-                  <div className="flex items-center justify-between font-bold text-stone-900">
-                    <span className="truncate">{novoAnexo.nome_arquivo}</span>
-                    <span className="text-[10px] font-mono text-stone-500">{novoAnexo.tamanho_formatado}</span>
-                  </div>
-                  {novoAnexo.preview_url && (
-                    <img
-                      src={novoAnexo.preview_url}
-                      alt="Preview do anexo"
-                      className="w-full h-32 object-cover rounded-lg border border-stone-300 mt-2"
-                    />
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-800">Categoria do Documento</label>
-                <select
-                  value={novoAnexo.categoria}
-                  onChange={(e) => setNovoAnexo({ ...novoAnexo, categoria: e.target.value as any })}
-                  className="w-full p-2.5 bg-stone-50 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C34]/20"
-                >
-                  <option value="Exame Laboratorial">Exame Laboratorial</option>
-                  <option value="Eletrocardiograma (ECG)">Eletrocardiograma (ECG)</option>
-                  <option value="Laudo de Imagem">Laudo de Imagem (Raio-X, TC, RM)</option>
-                  <option value="Foto Clínica / Lesão">Foto Clínica / Otoscopia / Lesão</option>
-                  <option value="Documento / Termo">Documento / Termo de Consentimento</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-800">Observações do Exame</label>
-                <input
-                  type="text"
-                  value={novoAnexo.observacoes}
-                  onChange={(e) => setNovoAnexo({ ...novoAnexo, observacoes: e.target.value })}
-                  placeholder="ex: Achados normais, colestorol HDL estável..."
-                  className="w-full p-2.5 bg-stone-50 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C34]/20"
-                />
-              </div>
-
-              <div className="pt-4 flex justify-end gap-3 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={() => setShowNovoAnexoModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={!novoAnexo.nome_arquivo}
-                  className="px-5 py-2.5 rounded-xl bg-[#1A3C34] text-white text-xs font-bold shadow-xs hover:bg-[#142E28] disabled:opacity-50"
-                >
-                  Anexar ao Prontuário
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* VISUALIZADOR DE ANEXO EM TELA CHEIA */}
       {viewingAnexo && (
@@ -1210,6 +987,15 @@ export const ProntuarioPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* QUADRO MODAL DE FRASES E MODELOS RÁPIDOS DE EVOLUÇÃO (CTRL + ESPAÇO) */}
+      <FrasesEvolucaoModal
+        isOpen={showFrasesModal}
+        onClose={() => setShowFrasesModal(false)}
+        onSelectFrase={handleInsertFraseFromModal}
+        currentActiveField={focusedSoapField}
+        currentFieldContent={novaEvolucao[focusedSoapField]}
+      />
     </div>
   );
 };

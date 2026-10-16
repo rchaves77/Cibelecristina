@@ -45,47 +45,48 @@ export async function generateAtestadoPdf({
   // Tenta carregar a imagem da logo oficial do site
   const logoDataUrl = await getBase64ImageFromUrl(DOCTOR_INFO.logoImage || '/logo.png');
 
-  // 1. Moldura e Barra Superior Elegante
+  // 1. Moldura e Barra Superior Elegante posicionada no topo da folha
   doc.setFillColor(26, 60, 52); // #1A3C34 Verde Floresta
-  doc.rect(margin, 12, contentWidth, 3, 'F');
+  doc.rect(margin, 8, contentWidth, 2.5, 'F');
 
   // Linha dourada sutil abaixo
   doc.setFillColor(197, 160, 89); // #C5A059 Ouro
-  doc.rect(margin, 15, contentWidth, 1, 'F');
+  doc.rect(margin, 10.5, contentWidth, 0.8, 'F');
 
-  let currentY = 20;
-
-  // 2. Logo Oficial no Cabeçalho
+  // 2. Logo Oficial no Cabeçalho (Posicionado alto para não encavalar com os textos)
+  let currentY = 13;
   if (logoDataUrl) {
     try {
-      const logoSize = 22; // 22mm x 22mm
-      doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - logoSize / 2, currentY, logoSize, logoSize);
-      currentY += logoSize + 4;
+      const logoWidth = 18;
+      const logoHeight = 18;
+      doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - logoWidth / 2, currentY, logoWidth, logoHeight);
+      currentY += logoHeight + 6; // 13 + 18 + 6 = 37mm: espaço amplo garantido
     } catch (e) {
       console.error('Erro ao inserir logo no PDF:', e);
-      currentY += 4;
+      currentY = 22;
     }
   } else {
-    currentY += 6;
+    currentY = 20;
   }
 
   // 3. Cabeçalho Oficial com Nome e Especialidade da Médica
+  // Grafia corrigida para "Drª. Cibele Cristina" (sem caixa alta)
   doc.setTextColor(26, 60, 52);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text(DOCTOR_INFO.fullName.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
+  doc.setFontSize(14);
+  doc.text('Drª. Cibele Cristina', pageWidth / 2, currentY, { align: 'center' });
 
-  currentY += 5;
+  currentY += 4.5;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(90, 100, 95);
   doc.text(`${DOCTOR_INFO.specialty} • ${DOCTOR_INFO.crm} • ${DOCTOR_INFO.rqe}`, pageWidth / 2, currentY, { align: 'center' });
   
-  currentY += 4.5;
+  currentY += 4;
   doc.text('Atenção Primária Integral • Cuidado Centrado na Pessoa • Rio Branco - AC', pageWidth / 2, currentY, { align: 'center' });
 
   // Divisor sutil
-  currentY += 5;
+  currentY += 4.5;
   doc.setDrawColor(220, 220, 215);
   doc.setLineWidth(0.4);
   doc.line(margin, currentY, pageWidth - margin, currentY);
@@ -93,7 +94,7 @@ export async function generateAtestadoPdf({
   // 4. Título do Documento
   currentY += 12;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setTextColor(26, 60, 52);
   doc.text(validacao.tipo_documento.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
 
@@ -117,7 +118,7 @@ export async function generateAtestadoPdf({
   let textoDeclaratorio = validacao.conteudo_texto;
   if (!textoDeclaratorio) {
     if (validacao.tipo_documento === 'Declaração de Comparecimento') {
-      textoDeclaratorio = `Atesto para os devidos fins que o(a) paciente ${validacao.paciente_nome} compareceu a este consultório médico em ${dataEmissao}, às ${horaEmissao} horas, para realização de consulta e procedimentos de saúde.`;
+      textoDeclaratorio = `Declaro para os devidos fins trabalhistas e escolares que o(a) paciente ${validacao.paciente_nome} compareceu a este consultório médico em ${dataEmissao}, às ${horaEmissao} horas, para realização de consulta e procedimentos de saúde.`;
     } else {
       textoDeclaratorio = `Atesto para os devidos fins que o(a) paciente ${validacao.paciente_nome} esteve sob meus cuidados profissionais na presente data, necessitando de ${validacao.dias_afastamento || 1} dia(s) de repouso e afastamento de suas atividades habituais a partir desta data para recuperação de sua saúde.`;
     }
@@ -157,17 +158,18 @@ export async function generateAtestadoPdf({
   doc.setLineWidth(0.5);
   doc.line(pageWidth / 2 - 45, lineY, pageWidth / 2 + 45, lineY);
 
+  // Assinatura com grafia corrigida "Drª. Cibele Cristina"
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(26, 60, 52);
-  doc.text(DOCTOR_INFO.fullName, pageWidth / 2, lineY + 5, { align: 'center' });
+  doc.text('Drª. Cibele Cristina', pageWidth / 2, lineY + 5, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(80, 90, 85);
   doc.text(`${DOCTOR_INFO.specialty} • ${DOCTOR_INFO.crm} • ${DOCTOR_INFO.rqe}`, pageWidth / 2, lineY + 9.5, { align: 'center' });
 
-  // 8. Bloco de Validação Pública com QR Code
+  // 8. Bloco de Validação Pública com QR Code (sem nenhum texto vazando das bordas)
   const validationUrl = `${baseUrl}/validar/${validacao.id}`;
   try {
     const qrDataUrl = await QRCode.toDataURL(validationUrl, {
@@ -180,34 +182,51 @@ export async function generateAtestadoPdf({
       }
     });
 
-    const footerBoxY = pageHeight - 44;
+    const boxHeight = 30;
+    const footerBoxY = pageHeight - 38;
     // Fundo cinza suave de autenticidade
     doc.setFillColor(248, 249, 247);
-    doc.roundedRect(margin, footerBoxY, contentWidth, 32, 2, 2, 'F');
+    doc.roundedRect(margin, footerBoxY, contentWidth, boxHeight, 2, 2, 'F');
     doc.setDrawColor(225, 230, 226);
-    doc.roundedRect(margin, footerBoxY, contentWidth, 32, 2, 2, 'S');
+    doc.roundedRect(margin, footerBoxY, contentWidth, boxHeight, 2, 2, 'S');
 
-    // QR Code à esquerda
-    doc.addImage(qrDataUrl, 'PNG', margin + 3, footerBoxY + 3, 26, 26);
+    // QR Code à esquerda: 24mm x 24mm perfeitamente centralizado verticalmente
+    doc.addImage(qrDataUrl, 'PNG', margin + 3, footerBoxY + 3, 24, 24);
 
     // Textos informativos de autenticidade
-    const textStartX = margin + 33;
+    // Margem esquerda do texto = 20 + 30 = 50mm
+    // Largura útil para o texto = 170 - 34 = 136mm (termina em 186mm, bem antes dos 190mm da borda)
+    const textStartX = margin + 30;
+    const availableTextWidth = contentWidth - 34;
+
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(26, 60, 52);
-    doc.text('DOCUMENTO MÉDICO COM AUTENTICIDADE VERIFICÁVEL', textStartX, footerBoxY + 6);
+    doc.text('DOCUMENTO MÉDICO COM AUTENTICIDADE VERIFICÁVEL', textStartX, footerBoxY + 5.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
+    doc.setFontSize(6.8);
     doc.setTextColor(80, 85, 82);
-    doc.text('Aponte a câmera do celular para o QR Code ao lado para conferir os dados originais deste documento.', textStartX, footerBoxY + 11);
-    doc.text(`Identificador Único: ${validacao.id}`, textStartX, footerBoxY + 16);
-    doc.text(`Código de Autenticação: ${validacao.hash_autenticidade}`, textStartX, footerBoxY + 21);
-    doc.text(`Emitido em: ${dataEmissao} às ${horaEmissao} • Sistema Clínico Dra. Cibele Cristina`, textStartX, footerBoxY + 26);
+    const instrucao = 'Aponte a câmera do celular para o QR Code ao lado para conferir os dados originais deste documento.';
+    const instrucaoLines = doc.splitTextToSize(instrucao, availableTextWidth);
+    doc.text(instrucaoLines, textStartX, footerBoxY + 9.5);
 
-    // Link clicável
+    doc.setFontSize(6.5);
+    doc.text(`Identificador Único: ${validacao.id}`, textStartX, footerBoxY + 14.5);
+    doc.text(`Código: ${validacao.hash_autenticidade} • Emitido em: ${dataEmissao} às ${horaEmissao} • Drª. Cibele Cristina`, textStartX, footerBoxY + 18.5);
+
+    // Link clicável ajustado que NUNCA transborda da caixa
+    doc.setFontSize(6.2);
     doc.setTextColor(197, 160, 89);
-    doc.textWithLink(validationUrl, textStartX, footerBoxY + 30, { url: validationUrl });
+    // Limita o texto exibido para caber dentro da largura disponível sem truncar a funcionalidade do link
+    const maxDisplayUrl = validationUrl.length > 68
+      ? `${validationUrl.slice(0, 65)}...`
+      : validationUrl;
+    doc.textWithLink(`Acesse para validar: ${maxDisplayUrl}`, textStartX, footerBoxY + 23, { url: validationUrl });
+
+    doc.setFontSize(5.8);
+    doc.setTextColor(140, 145, 142);
+    doc.text('Assinatura eletrônica em conformidade com a MP nº 2.200-2/2001 e Resolução CFM nº 2.299/2021.', textStartX, footerBoxY + 27);
   } catch (err) {
     console.error('Erro ao gerar QR Code:', err);
   }
@@ -249,20 +268,20 @@ export async function generatePrescricaoPdf({
 
   const logoDataUrl = await getBase64ImageFromUrl(DOCTOR_INFO.logoImage || '/logo.png');
 
-  // Moldura decorativa
+  // Moldura decorativa no topo da folha
   doc.setFillColor(26, 60, 52);
-  doc.rect(margin, 12, contentWidth, 3, 'F');
+  doc.rect(margin, 8, contentWidth, 2.5, 'F');
   doc.setFillColor(197, 160, 89);
-  doc.rect(margin, 15, contentWidth, 1, 'F');
+  doc.rect(margin, 10.5, contentWidth, 0.8, 'F');
 
-  let currentY = 20;
-
-  // Logo Oficial no Cabeçalho
+  // Logo Oficial no Cabeçalho (Posicionado alto para não encavalar com os textos)
+  let currentY = 13;
   if (logoDataUrl) {
     try {
-      const logoSize = 22;
-      doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - logoSize / 2, currentY, logoSize, logoSize);
-      currentY += logoSize + 4;
+      const logoWidth = 18;
+      const logoHeight = 18;
+      doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - logoWidth / 2, currentY, logoWidth, logoHeight);
+      currentY += logoHeight + 6;
     } catch {
       currentY += 4;
     }
@@ -270,22 +289,22 @@ export async function generatePrescricaoPdf({
     currentY += 6;
   }
 
-  // Cabeçalho
+  // Cabeçalho da prescrição sem caixa alta
   doc.setTextColor(26, 60, 52);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text(DOCTOR_INFO.fullName.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
+  doc.setFontSize(14);
+  doc.text('Drª. Cibele Cristina', pageWidth / 2, currentY, { align: 'center' });
 
-  currentY += 5;
+  currentY += 4.5;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(90, 100, 95);
   doc.text(`${DOCTOR_INFO.specialty} • ${DOCTOR_INFO.crm} • ${DOCTOR_INFO.rqe}`, pageWidth / 2, currentY, { align: 'center' });
   
-  currentY += 4.5;
+  currentY += 4;
   doc.text('Clínica & Consultório Médico • Rio Branco - AC', pageWidth / 2, currentY, { align: 'center' });
 
-  currentY += 5;
+  currentY += 4.5;
   doc.setDrawColor(220, 220, 215);
   doc.setLineWidth(0.4);
   doc.line(margin, currentY, pageWidth - margin, currentY);
@@ -300,7 +319,7 @@ export async function generatePrescricaoPdf({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(26, 60, 52);
-  doc.text(`Paciente: ${pacienteNome.toUpperCase()}`, margin + 5, currentY + 7);
+  doc.text(`Paciente: ${pacienteNome}`, margin + 5, currentY + 7);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
@@ -360,7 +379,7 @@ export async function generatePrescricaoPdf({
     currentY += obsLines.length * 4.5 + 8;
   }
 
-  // Bloco de Assinatura
+  // Bloco de Assinatura com grafia corrigida "Drª. Cibele Cristina"
   const signBlockY = pageHeight - 45;
   if (signatureDataUrl) {
     try {
@@ -377,7 +396,7 @@ export async function generatePrescricaoPdf({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(26, 60, 52);
-  doc.text(DOCTOR_INFO.fullName, pageWidth / 2, signBlockY + 4.5, { align: 'center' });
+  doc.text('Drª. Cibele Cristina', pageWidth / 2, signBlockY + 4.5, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -387,4 +406,3 @@ export async function generatePrescricaoPdf({
   const fileDocName = `${tipo.toLowerCase().replace(/\s+/g, '_')}_${pacienteNome.toLowerCase().replace(/\s+/g, '_')}.pdf`;
   doc.save(fileDocName);
 }
-

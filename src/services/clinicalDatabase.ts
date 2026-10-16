@@ -20,6 +20,7 @@ import {
   AdendoEvolucao
 } from '../types/clinical';
 import { DOCTOR_INFO } from '../data/medicinarteData';
+import { MedicamentoPrescricao, TODOS_MEDICAMENTOS_BRASIL } from '../data/medicamentosBrasil';
 
 // Chaves de Armazenamento Local
 const STORAGE_KEYS = {
@@ -32,6 +33,7 @@ const STORAGE_KEYS = {
   VALIDACOES: 'cibele_db_validacoes_v1',
   TEMPLATES_PRESCRICAO: 'cibele_db_templates_prescricao_v1',
   PRESCRICOES_EMITIDAS: 'cibele_db_prescricoes_emitidas_v1',
+  MEDICAMENTOS: 'cibele_db_medicamentos_brasil_v1',
   SCHOOLS: 'cibele_db_schools_v1',
   SCHOOL_STUDENTS: 'cibele_db_school_students_v1',
   NEURO_ALERTS: 'cibele_db_neuro_alerts_v1',
@@ -1694,6 +1696,32 @@ class ClinicalDatabaseService {
     };
     list.unshift(novo);
     this.setStorage(STORAGE_KEYS.FINANCEIRO, list);
+    return novo;
+  }
+
+  // --- MEDICAMENTOS BRASIL & RENAME COM POSOLOGIAS E DIRETRIZES ---
+  getMedicamentos(termo?: string): MedicamentoPrescricao[] {
+    const list = this.getStorage<MedicamentoPrescricao[]>(STORAGE_KEYS.MEDICAMENTOS, TODOS_MEDICAMENTOS_BRASIL);
+    if (!termo || termo.trim().length === 0) {
+      return list;
+    }
+    const clean = termo.toLowerCase().trim();
+    // Filtro pelo label ou categoria conforme o médico digita
+    return list.filter((m) =>
+      m.label.toLowerCase().includes(clean) ||
+      m.categoria.toLowerCase().includes(clean) ||
+      m.medicamento.toLowerCase().includes(clean)
+    );
+  }
+
+  saveMedicamento(med: Omit<MedicamentoPrescricao, 'id'>): MedicamentoPrescricao {
+    const list = this.getStorage<MedicamentoPrescricao[]>(STORAGE_KEYS.MEDICAMENTOS, TODOS_MEDICAMENTOS_BRASIL);
+    const novo: MedicamentoPrescricao = {
+      ...med,
+      id: Date.now()
+    };
+    list.unshift(novo);
+    this.setStorage(STORAGE_KEYS.MEDICAMENTOS, list);
     return novo;
   }
 }
