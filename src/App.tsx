@@ -40,6 +40,7 @@ export default function App() {
         {/* Validação Pública de Atestados e Laudos via QR Code ou Código */}
         <Route path="/validar" element={<ValidarAtestadoPage />} />
         <Route path="/validar-atestado" element={<ValidarAtestadoPage />} />
+        <Route path="/validar-atestado/:id" element={<ValidarAtestadoPage />} />
         <Route path="/validar/:id" element={<ValidarAtestadoPage />} />
         <Route path="/validacao" element={<ValidarAtestadoPage />} />
         <Route path="/validacao/:id" element={<ValidarAtestadoPage />} />

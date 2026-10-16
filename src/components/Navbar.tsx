@@ -43,13 +43,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenBooking, onOpenAdmin, acti
             <span className="text-[11px] uppercase tracking-widest font-medium">Atendimento Humanizado • Medicina de Família e Comunidade</span>
             <span className="hidden md:inline text-[#A0AEC0]">• CRM 3482 / AC</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <a
               href={`tel:${DOCTOR_PROFILE.phone.replace(/\D/g, '')}`}
               className="hover:text-white flex items-center gap-1.5 transition-colors text-xs"
             >
               <Phone className="w-3 h-3 text-[#4ADE80]" />
               <span>{DOCTOR_PROFILE.phone}</span>
+            </a>
+            <span className="text-[#2D5A54]">|</span>
+            <a
+              href="/validar"
+              className="text-[#DCE7E5] hover:text-white flex items-center gap-1 transition-colors text-xs"
+              title="Validação Oficial de Atestados e Receitas Médicas"
+            >
+              <Shield className="w-3 h-3 text-[#4ADE80]" />
+              <span className="text-[11px] uppercase tracking-wider font-medium">Validar Documento</span>
             </a>
             <span className="text-[#2D5A54]">|</span>
             <button
@@ -181,6 +190,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenBooking, onOpenAdmin, acti
               <MessageSquare className="w-4 h-4 text-[#2D5A54]" />
               <span>Conversar no WhatsApp</span>
             </a>
+            <a
+              href="/validar"
+              className="w-full py-2 rounded-lg text-xs uppercase tracking-wider font-semibold text-[#2D5A54] bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center gap-1.5 transition-colors border border-emerald-200"
+            >
+              <Shield className="w-3.5 h-3.5 text-[#1A3C34]" />
+              <span>Validar Documento Médico (QR Code)</span>
+            </a>
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
@@ -188,7 +204,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenBooking, onOpenAdmin, acti
               }}
               className="w-full py-2 rounded-lg text-xs uppercase tracking-wider font-semibold text-[#636E72] hover:text-[#1A3A36] hover:bg-[#DCE7E5]/30 flex items-center justify-center gap-1.5"
             >
-              <Shield className="w-3.5 h-3.5 text-[#2D5A54]" />
+              <Lock className="w-3.5 h-3.5 text-[#2D5A54]" />
               <span>Acessar Painel Administrativo (CMS)</span>
             </button>
           </div>

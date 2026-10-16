@@ -196,13 +196,44 @@ app.get('/api/validacoes', (_req, res) => {
 
 app.get('/api/validacoes/:key', (req, res) => {
   const { key } = req.params;
-  const cleanKey = (key || '').trim().toLowerCase();
+  let cleanKey = decodeURIComponent(key || '').trim().toLowerCase();
+  
+  // Clean if a full URL or path was passed
+  if (cleanKey.includes('/validar/')) cleanKey = cleanKey.split('/validar/').pop()?.split('?')[0] || cleanKey;
+  if (cleanKey.includes('/validar-atestado/')) cleanKey = cleanKey.split('/validar-atestado/').pop()?.split('?')[0] || cleanKey;
+  if (cleanKey.includes('/validacao/')) cleanKey = cleanKey.split('/validacao/').pop()?.split('?')[0] || cleanKey;
+  if (cleanKey.includes('codigo=')) cleanKey = cleanKey.split('codigo=').pop()?.split('&')[0] || cleanKey;
+  if (cleanKey.includes('c=')) cleanKey = cleanKey.split('c=').pop()?.split('&')[0] || cleanKey;
+  cleanKey = cleanKey.replace(/^\/+|\/+$/g, '').trim();
+
   const validacoes = readJsonFile<any[]>(VALIDACOES_FILE, []);
 
-  const found = validacoes.find(v => 
+  // 1. Exact match by ID or full hash
+  let found = validacoes.find(v => 
     (v.id && v.id.toLowerCase() === cleanKey) ||
     (v.hash_autenticidade && v.hash_autenticidade.toLowerCase() === cleanKey)
   );
+
+  // 2. Hash suffix or contains match (e.g. user typed last 4 chars '03F0' or '2657')
+  if (!found && cleanKey.length >= 3) {
+    found = validacoes.find(v => {
+      const h = (v.hash_autenticidade || '').toLowerCase();
+      const id = (v.id || '').toLowerCase();
+      return h.endsWith(cleanKey) || h.includes(cleanKey) || id.startsWith(cleanKey) || id.includes(cleanKey);
+    });
+  }
+
+  // 3. Alphanumeric match (ignoring hyphens and spaces)
+  if (!found) {
+    const rawInput = cleanKey.replace(/[^a-z0-9]/g, '');
+    if (rawInput.length >= 3) {
+      found = validacoes.find(v => {
+        const rawHash = (v.hash_autenticidade || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const rawId = (v.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return rawHash === rawInput || rawHash.endsWith(rawInput) || rawHash.includes(rawInput) || rawId.startsWith(rawInput);
+      });
+    }
+  }
 
   if (found) {
     return res.json({ success: true, validacao: found });

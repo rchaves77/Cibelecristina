@@ -37,13 +37,21 @@ export const ValidarAtestadoPage: React.FC = () => {
     }
 
     // Se o usuário colou uma URL completa (ex: https://.../validar/UUID ou ?codigo=...)
-    if (clean.includes('/validar/')) {
+    clean = clean.replace(/^https?:\/\/[^/]+/i, '');
+    if (clean.includes('/validar-atestado/')) {
+      clean = clean.split('/validar-atestado/').pop()?.split('?')[0] || clean;
+    } else if (clean.includes('/validar/')) {
       clean = clean.split('/validar/').pop()?.split('?')[0] || clean;
     } else if (clean.includes('/validacao/')) {
       clean = clean.split('/validacao/').pop()?.split('?')[0] || clean;
+    } else if (clean.includes('/validar-documento/')) {
+      clean = clean.split('/validar-documento/').pop()?.split('?')[0] || clean;
     } else if (clean.includes('codigo=')) {
       clean = clean.split('codigo=').pop()?.split('&')[0] || clean;
+    } else if (clean.includes('c=')) {
+      clean = clean.split('c=').pop()?.split('&')[0] || clean;
     }
+    clean = clean.replace(/^\/+|\/+$/g, '').trim();
 
     setCarregando(true);
     setBuscou(true);
@@ -64,12 +72,31 @@ export const ValidarAtestadoPage: React.FC = () => {
         console.warn('Consulta /api/validacoes falhou, tentando fallback local:', err);
       }
 
-      // 2. Busca no banco local clínico por ID ou por Hash
+      // 2. Busca no banco local clínico por ID, Hash exata, sufixo (ex: 03F0) ou alfanumérico
       const todas = clinicalDb.getValidacoes();
-      const localFound = todas.find(v => 
-        (v.id && v.id.toLowerCase() === clean.toLowerCase()) ||
-        (v.hash_autenticidade && v.hash_autenticidade.toLowerCase() === clean.toLowerCase())
+      const cleanLower = clean.toLowerCase();
+      const rawInput = cleanLower.replace(/[^a-z0-9]/g, '');
+
+      let localFound = todas.find(v => 
+        (v.id && v.id.toLowerCase() === cleanLower) ||
+        (v.hash_autenticidade && v.hash_autenticidade.toLowerCase() === cleanLower)
       );
+
+      if (!localFound && cleanLower.length >= 3) {
+        localFound = todas.find(v => {
+          const h = (v.hash_autenticidade || '').toLowerCase();
+          const id = (v.id || '').toLowerCase();
+          return h.endsWith(cleanLower) || h.includes(cleanLower) || id.startsWith(cleanLower) || id.includes(cleanLower);
+        });
+      }
+
+      if (!localFound && rawInput.length >= 3) {
+        localFound = todas.find(v => {
+          const rawHash = (v.hash_autenticidade || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          const rawId = (v.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          return rawHash === rawInput || rawHash.endsWith(rawInput) || rawHash.includes(rawInput) || rawId.startsWith(rawInput);
+        });
+      }
 
       if (localFound) {
         setValidacao(localFound);

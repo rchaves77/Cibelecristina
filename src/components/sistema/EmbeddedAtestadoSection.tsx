@@ -32,6 +32,7 @@ interface EmbeddedAtestadoSectionProps {
 export type ModeloAtestado =
   | 'Atestado Médico de Afastamento'
   | 'Declaração de Comparecimento'
+  | 'Atestado Médico para Acompanhante'
   | 'Atestado de Aptidão Física'
   | 'Laudo Médico';
 
@@ -44,7 +45,7 @@ export const EmbeddedAtestadoSection: React.FC<EmbeddedAtestadoSectionProps> = (
   const [modelo, setModelo] = useState<ModeloAtestado>('Atestado Médico de Afastamento');
   const [isFormOpen, setIsFormOpen] = useState(true);
 
-  // Campos específicos: Afastamento
+  // Campos específicos: Afastamento do Paciente
   const [diasAfastamento, setDiasAfastamento] = useState<number>(2);
   const [dataInicioAfastamento, setDataInicioAfastamento] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -59,6 +60,12 @@ export const EmbeddedAtestadoSection: React.FC<EmbeddedAtestadoSectionProps> = (
   const [horarioChegada, setHorarioChegada] = useState<string>('09:00');
   const [horarioSaida, setHorarioSaida] = useState<string>('10:30');
   const [nomeAcompanhante, setNomeAcompanhante] = useState<string>('');
+
+  // Campos específicos: Atestado / Declaração para Acompanhante
+  const [cpfAcompanhante, setCpfAcompanhante] = useState<string>('');
+  const [parentescoAcompanhante, setParentescoAcompanhante] = useState<string>('Mãe');
+  const [subtipoAcompanhante, setSubtipoAcompanhante] = useState<'afastamento' | 'comparecimento'>('afastamento');
+  const [diasAfastamentoAcomp, setDiasAfastamentoAcomp] = useState<number>(1);
 
   // Campos específicos: Aptidão Física
   const [finalidadeAptidao, setFinalidadeAptidao] = useState<string>(
@@ -106,6 +113,21 @@ export const EmbeddedAtestadoSection: React.FC<EmbeddedAtestadoSectionProps> = (
       setPreviewTexto(
         `Declaro para os devidos fins trabalhistas e escolares que o(a) paciente ${paciente.nome}, CPF: ${paciente.cpf || 'não informado'}, compareceu a este consultório médico em ${dataCompFormatada}, no período das ${horarioChegada} às ${horarioSaida} horas${acompTexto}, para realização de consulta médica ambulatorial.`
       );
+    } else if (modelo === 'Atestado Médico para Acompanhante') {
+      const vinculo = parentescoAcompanhante.trim() ? ` (${parentescoAcompanhante.trim()})` : '';
+      const nomeAcomp = nomeAcompanhante.trim() || 'ACOMPANHANTE';
+      const cpfAcomp = cpfAcompanhante.trim() || 'não informado';
+
+      if (subtipoAcompanhante === 'afastamento') {
+        const diasAcompPlural = diasAfastamentoAcomp === 1 ? '1 (um) dia' : `${diasAfastamentoAcomp} (${diasAfastamentoAcomp}) dias`;
+        setPreviewTexto(
+          `Atesto para os devidos fins legais, trabalhistas e previdenciários (Art. 473 da CLT e resoluções do CFM) que o(a) Sr.(a) ${nomeAcomp}, inscrito(a) no CPF sob nº ${cpfAcomp}${vinculo}, esteve presente prestando assistência e cuidados indispensáveis ao(à) paciente ${paciente.nome}, CPF: ${paciente.cpf || 'não informado'}, nesta data, devendo permanecer afastado(a) de suas atividades laborais por ${diasAcompPlural}, a partir de ${dataFormatada}, para prestar suporte integral e acompanhar o tratamento e recuperação de saúde do(a) paciente sob seus cuidados.`
+        );
+      } else {
+        setPreviewTexto(
+          `Declaro para os devidos fins trabalhistas e escolares (Art. 473 da CLT) que o(a) Sr.(a) ${nomeAcomp}, inscrito(a) no CPF sob nº ${cpfAcomp}${vinculo}, esteve presente neste consultório médico em ${dataCompFormatada}, no período das ${horarioChegada} às ${horarioSaida} horas, prestando acompanhamento presencial ao(à) paciente ${paciente.nome}, CPF: ${paciente.cpf || 'não informado'}, durante a realização de consulta médica ambulatorial e procedimentos de saúde.`
+        );
+      }
     } else if (modelo === 'Atestado de Aptidão Física') {
       setPreviewTexto(
         `Atesto para os devidos fins que examinei clinicamente nesta data o(a) paciente ${paciente.nome}, CPF: ${paciente.cpf || 'não informado'}, encontrando-se hígido(a) e apto(a), do ponto de vista clínico e cardiovascular no momento deste exame, para a ${finalidadeAptidao}. Validade recomendada: 12 (doze) meses.`
@@ -125,6 +147,10 @@ export const EmbeddedAtestadoSection: React.FC<EmbeddedAtestadoSectionProps> = (
     horarioChegada,
     horarioSaida,
     nomeAcompanhante,
+    cpfAcompanhante,
+    parentescoAcompanhante,
+    subtipoAcompanhante,
+    diasAfastamentoAcomp,
     finalidadeAptidao,
     paciente.nome,
     paciente.cpf,
@@ -150,17 +176,26 @@ export const EmbeddedAtestadoSection: React.FC<EmbeddedAtestadoSectionProps> = (
       const tipoMapeado: ValidacaoAtestado['tipo_documento'] =
         modelo === 'Declaração de Comparecimento'
           ? 'Declaração de Comparecimento'
+          : modelo === 'Atestado Médico para Acompanhante'
+          ? 'Atestado Médico para Acompanhante'
           : modelo === 'Laudo Médico'
           ? 'Laudo Médico'
           : 'Atestado Médico';
 
       // 1. Cria validação no banco clínico com hash e QR Code
+      const diasAfastamentoFinal =
+        modelo === 'Atestado Médico de Afastamento'
+          ? diasAfastamento
+          : modelo === 'Atestado Médico para Acompanhante' && subtipoAcompanhante === 'afastamento'
+          ? diasAfastamentoAcomp
+          : undefined;
+
       const novaValidacao = clinicalDb.createValidacao({
         paciente_nome: paciente.nome,
         profissional_nome: `${DOCTOR_INFO.fullName} (${DOCTOR_INFO.crm} | ${DOCTOR_INFO.rqe})`,
         tipo_documento: tipoMapeado,
         conteudo_texto: previewTexto.trim(),
-        dias_afastamento: modelo === 'Atestado Médico de Afastamento' ? diasAfastamento : undefined,
+        dias_afastamento: diasAfastamentoFinal,
         cid: (autorizaCid && cid.trim()) ? resolveCidString(cid.trim()) : undefined
       });
 
@@ -254,11 +289,12 @@ export const EmbeddedAtestadoSection: React.FC<EmbeddedAtestadoSectionProps> = (
             <label className="block text-xs font-bold text-stone-800">
               Selecione o Modelo de Documento:
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
               {(
                 [
                   'Atestado Médico de Afastamento',
                   'Declaração de Comparecimento',
+                  'Atestado Médico para Acompanhante',
                   'Atestado de Aptidão Física',
                   'Laudo Médico'
                 ] as const
@@ -276,7 +312,8 @@ export const EmbeddedAtestadoSection: React.FC<EmbeddedAtestadoSectionProps> = (
                   <span>{m}</span>
                   <span className={`text-[10px] font-normal mt-1 ${modelo === m ? 'text-emerald-200' : 'text-stone-400'}`}>
                     {m === 'Atestado Médico de Afastamento' && 'Repouso, dias e CID'}
-                    {m === 'Declaração de Comparecimento' && 'Horários e acompanhante'}
+                    {m === 'Declaração de Comparecimento' && 'Horários e paciente'}
+                    {m === 'Atestado Médico para Acompanhante' && 'CLT, familiar e cuidador'}
                     {m === 'Atestado de Aptidão Física' && 'Academia e esportes'}
                     {m === 'Laudo Médico' && 'Relatório circunstanciado'}
                   </span>
@@ -442,6 +479,195 @@ export const EmbeddedAtestadoSection: React.FC<EmbeddedAtestadoSectionProps> = (
                     className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
                   />
                 </div>
+              </div>
+            )}
+
+            {/* MODELO: ATESTADO MÉDICO PARA O ACOMPANHANTE */}
+            {modelo === 'Atestado Médico para Acompanhante' && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-stone-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubtipoAcompanhante('afastamento');
+                      setUserHasEditedPreview(false);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      subtipoAcompanhante === 'afastamento'
+                        ? 'bg-[#1A3C34] text-white shadow-xs'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    Afastamento do Trabalho (Licença / Art. 473 CLT)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubtipoAcompanhante('comparecimento');
+                      setUserHasEditedPreview(false);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      subtipoAcompanhante === 'comparecimento'
+                        ? 'bg-[#1A3C34] text-white shadow-xs'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    Declaração de Comparecimento / Horários
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-800 mb-1">
+                      Nome Completo do Acompanhante:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ex: Rômulo Chaves da Silva"
+                      value={nomeAcompanhante}
+                      onChange={(e) => {
+                        setNomeAcompanhante(e.target.value);
+                        setUserHasEditedPreview(false);
+                      }}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-800 mb-1">
+                      CPF do Acompanhante (ou RG):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ex: 123.456.789-00"
+                      value={cpfAcompanhante}
+                      onChange={(e) => {
+                        setCpfAcompanhante(e.target.value);
+                        setUserHasEditedPreview(false);
+                      }}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-800 mb-1">
+                      Grau de Parentesco / Vínculo:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ex: Mãe, Pai, Cônjuge, Filho(a), Cuidador(a)"
+                      value={parentescoAcompanhante}
+                      onChange={(e) => {
+                        setParentescoAcompanhante(e.target.value);
+                        setUserHasEditedPreview(false);
+                      }}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
+                    />
+                  </div>
+                </div>
+
+                {subtipoAcompanhante === 'afastamento' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-800 mb-1">
+                        Dias de Afastamento para o Acompanhante:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={diasAfastamentoAcomp}
+                          onChange={(e) => {
+                            setDiasAfastamentoAcomp(Math.max(1, parseInt(e.target.value) || 1));
+                            setUserHasEditedPreview(false);
+                          }}
+                          className="w-20 px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
+                        />
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 5, 7].map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => {
+                                setDiasAfastamentoAcomp(d);
+                                setUserHasEditedPreview(false);
+                              }}
+                              className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                                diasAfastamentoAcomp === d
+                                  ? 'bg-[#1A3C34] text-white border-[#1A3C34]'
+                                  : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
+                              }`}
+                            >
+                              {d}d
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-800 mb-1">
+                        Data de Início do Afastamento:
+                      </label>
+                      <input
+                        type="date"
+                        value={dataInicioAfastamento}
+                        onChange={(e) => {
+                          setDataInicioAfastamento(e.target.value);
+                          setUserHasEditedPreview(false);
+                        }}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-800 mb-1">
+                        Data do Comparecimento:
+                      </label>
+                      <input
+                        type="date"
+                        value={dataComparecimento}
+                        onChange={(e) => {
+                          setDataComparecimento(e.target.value);
+                          setUserHasEditedPreview(false);
+                        }}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-800 mb-1">
+                        Horário de Chegada:
+                      </label>
+                      <input
+                        type="time"
+                        value={horarioChegada}
+                        onChange={(e) => {
+                          setHorarioChegada(e.target.value);
+                          setUserHasEditedPreview(false);
+                        }}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-800 mb-1">
+                        Horário de Saída:
+                      </label>
+                      <input
+                        type="time"
+                        value={horarioSaida}
+                        onChange={(e) => {
+                          setHorarioSaida(e.target.value);
+                          setUserHasEditedPreview(false);
+                        }}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#1A3C34]"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

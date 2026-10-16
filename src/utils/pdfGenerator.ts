@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { DOCTOR_INFO } from '../data/medicinarteData';
 import { ValidacaoAtestado, PrescricaoItem } from '../types/clinical';
+import { LOGO_ATESTADO_BASE64 } from '../assets/logoAtestadoBase64';
 
 async function getBase64ImageFromUrl(url: string): Promise<string | null> {
   try {
@@ -42,35 +43,38 @@ export async function generateAtestadoPdf({
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;
 
-  // Tenta carregar a imagem da logo oficial do site
-  const logoDataUrl = await getBase64ImageFromUrl(DOCTOR_INFO.logoImage || '/logo.png');
+  // Carrega a logo oficial recortada e limpa (LOGO_ATESTADO_BASE64) ou fallback da URL
+  let logoDataUrl = LOGO_ATESTADO_BASE64;
+  if (!logoDataUrl) {
+    logoDataUrl = await getBase64ImageFromUrl(DOCTOR_INFO.logoImage || '/logo-atestado.png') || '';
+  }
 
   // 1. Moldura e Barra Superior Elegante posicionada no topo da folha
   doc.setFillColor(26, 60, 52); // #1A3C34 Verde Floresta
-  doc.rect(margin, 8, contentWidth, 2.5, 'F');
+  doc.rect(margin, 5.5, contentWidth, 2.2, 'F');
 
   // Linha dourada sutil abaixo
   doc.setFillColor(197, 160, 89); // #C5A059 Ouro
-  doc.rect(margin, 10.5, contentWidth, 0.8, 'F');
+  doc.rect(margin, 7.8, contentWidth, 0.6, 'F');
 
-  // 2. Logo Oficial no Cabeçalho (Posicionado alto para não encavalar com os textos)
-  let currentY = 13;
+  // 2. Logo Oficial no Cabeçalho (Posicionado alto: y=9.5mm, h=17.3mm -> termina em 26.8mm)
+  // Deixando espaço livre e garantindo que NUNCA encavala com o nome
+  const logoWidth = 15;
+  const logoHeight = 17.3;
+  const logoY = 9.5;
+
   if (logoDataUrl) {
     try {
-      const logoWidth = 18;
-      const logoHeight = 18;
-      doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - logoWidth / 2, currentY, logoWidth, logoHeight);
-      currentY += logoHeight + 6; // 13 + 18 + 6 = 37mm: espaço amplo garantido
+      doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - logoWidth / 2, logoY, logoWidth, logoHeight);
     } catch (e) {
       console.error('Erro ao inserir logo no PDF:', e);
-      currentY = 22;
     }
-  } else {
-    currentY = 20;
   }
 
   // 3. Cabeçalho Oficial com Nome e Especialidade da Médica
-  // Grafia corrigida para "Drª. Cibele Cristina" (sem caixa alta)
+  // O nome começa em y=32.5mm (5.7mm abaixo do término da logo)
+  // Grafia estritamente "Drª. Cibele Cristina" (sem caixa alta)
+  let currentY = 32.5;
   doc.setTextColor(26, 60, 52);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
@@ -96,7 +100,9 @@ export async function generateAtestadoPdf({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(26, 60, 52);
-  doc.text(validacao.tipo_documento.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
+
+  const tituloFormatado = (validacao.tipo_documento || 'Atestado Médico').toUpperCase();
+  doc.text(tituloFormatado, pageWidth / 2, currentY, { align: 'center' });
 
   // 5. Corpo do Documento
   currentY += 14;
@@ -119,6 +125,8 @@ export async function generateAtestadoPdf({
   if (!textoDeclaratorio) {
     if (validacao.tipo_documento === 'Declaração de Comparecimento') {
       textoDeclaratorio = `Declaro para os devidos fins trabalhistas e escolares que o(a) paciente ${validacao.paciente_nome} compareceu a este consultório médico em ${dataEmissao}, às ${horaEmissao} horas, para realização de consulta e procedimentos de saúde.`;
+    } else if (validacao.tipo_documento === 'Atestado Médico para Acompanhante' || validacao.tipo_documento === 'Atestado de Acompanhamento de Doente') {
+      textoDeclaratorio = `Atesto para os devidos fins trabalhistas e legais que o(a) acompanhante esteve prestando assistência indispensável ao(à) paciente ${validacao.paciente_nome} nesta data em consulta médica ambulatorial.`;
     } else {
       textoDeclaratorio = `Atesto para os devidos fins que o(a) paciente ${validacao.paciente_nome} esteve sob meus cuidados profissionais na presente data, necessitando de ${validacao.dias_afastamento || 1} dia(s) de repouso e afastamento de suas atividades habituais a partir desta data para recuperação de sua saúde.`;
     }
@@ -182,51 +190,47 @@ export async function generateAtestadoPdf({
       }
     });
 
-    const boxHeight = 30;
-    const footerBoxY = pageHeight - 38;
+    const boxHeight = 31;
+    const footerBoxY = pageHeight - 39; // 297 - 39 = 258mm, termina em 289mm
     // Fundo cinza suave de autenticidade
     doc.setFillColor(248, 249, 247);
     doc.roundedRect(margin, footerBoxY, contentWidth, boxHeight, 2, 2, 'F');
-    doc.setDrawColor(225, 230, 226);
+    doc.setDrawColor(220, 225, 222);
     doc.roundedRect(margin, footerBoxY, contentWidth, boxHeight, 2, 2, 'S');
 
-    // QR Code à esquerda: 24mm x 24mm perfeitamente centralizado verticalmente
-    doc.addImage(qrDataUrl, 'PNG', margin + 3, footerBoxY + 3, 24, 24);
+    // QR Code à esquerda: 25mm x 25mm
+    doc.addImage(qrDataUrl, 'PNG', margin + 3.5, footerBoxY + 3, 25, 25);
 
-    // Textos informativos de autenticidade
-    // Margem esquerda do texto = 20 + 30 = 50mm
-    // Largura útil para o texto = 170 - 34 = 136mm (termina em 186mm, bem antes dos 190mm da borda)
-    const textStartX = margin + 30;
-    const availableTextWidth = contentWidth - 34;
+    // Textos informativos de autenticidade dentro da largura disponível
+    const textStartX = margin + 32;
+    const availableTextWidth = contentWidth - 35; // 170 - 35 = 135mm
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(26, 60, 52);
     doc.text('DOCUMENTO MÉDICO COM AUTENTICIDADE VERIFICÁVEL', textStartX, footerBoxY + 5.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.8);
-    doc.setTextColor(80, 85, 82);
-    const instrucao = 'Aponte a câmera do celular para o QR Code ao lado para conferir os dados originais deste documento.';
-    const instrucaoLines = doc.splitTextToSize(instrucao, availableTextWidth);
-    doc.text(instrucaoLines, textStartX, footerBoxY + 9.5);
-
-    doc.setFontSize(6.5);
-    doc.text(`Identificador Único: ${validacao.id}`, textStartX, footerBoxY + 14.5);
-    doc.text(`Código: ${validacao.hash_autenticidade} • Emitido em: ${dataEmissao} às ${horaEmissao} • Drª. Cibele Cristina`, textStartX, footerBoxY + 18.5);
-
-    // Link clicável ajustado que NUNCA transborda da caixa
     doc.setFontSize(6.2);
-    doc.setTextColor(197, 160, 89);
-    // Limita o texto exibido para caber dentro da largura disponível sem truncar a funcionalidade do link
-    const maxDisplayUrl = validationUrl.length > 68
-      ? `${validationUrl.slice(0, 65)}...`
-      : validationUrl;
-    doc.textWithLink(`Acesse para validar: ${maxDisplayUrl}`, textStartX, footerBoxY + 23, { url: validationUrl });
+    doc.setTextColor(80, 85, 82);
+    doc.text('Aponte a câmera para o QR Code ao lado ou acesse o link para conferir os dados originais.', textStartX, footerBoxY + 9.5);
 
-    doc.setFontSize(5.8);
-    doc.setTextColor(140, 145, 142);
-    doc.text('Assinatura eletrônica em conformidade com a MP nº 2.200-2/2001 e Resolução CFM nº 2.299/2021.', textStartX, footerBoxY + 27);
+    doc.setFontSize(6.0);
+    doc.text(`Identificador: ${validacao.id}`, textStartX, footerBoxY + 14);
+    doc.text(`Código: ${validacao.hash_autenticidade} • Emitido em: ${dataEmissao} às ${horaEmissao} • Drª. Cibele Cristina`, textStartX, footerBoxY + 18);
+
+    // Link clicável ajustado que NUNCA transborda da caixa (trunca display dinamicamente)
+    doc.setFontSize(6.0);
+    doc.setTextColor(180, 140, 60);
+    let displayLink = `Acesse para validar: ${validationUrl}`;
+    while (doc.getTextWidth(displayLink) > availableTextWidth && displayLink.length > 25) {
+      displayLink = displayLink.slice(0, -4) + '...';
+    }
+    doc.textWithLink(displayLink, textStartX, footerBoxY + 22.5, { url: validationUrl });
+
+    doc.setFontSize(5.3);
+    doc.setTextColor(130, 135, 132);
+    doc.text('Assinatura eletrônica em conformidade com a MP nº 2.200-2/2001 e Resolução CFM nº 2.299/2021.', textStartX, footerBoxY + 26.5);
   } catch (err) {
     console.error('Erro ao gerar QR Code:', err);
   }
@@ -266,30 +270,33 @@ export async function generatePrescricaoPdf({
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;
 
-  const logoDataUrl = await getBase64ImageFromUrl(DOCTOR_INFO.logoImage || '/logo.png');
+  // Carrega a logo oficial recortada e limpa
+  let logoDataUrl = LOGO_ATESTADO_BASE64;
+  if (!logoDataUrl) {
+    logoDataUrl = await getBase64ImageFromUrl(DOCTOR_INFO.logoImage || '/logo-atestado.png') || '';
+  }
 
   // Moldura decorativa no topo da folha
   doc.setFillColor(26, 60, 52);
-  doc.rect(margin, 8, contentWidth, 2.5, 'F');
+  doc.rect(margin, 5.5, contentWidth, 2.2, 'F');
   doc.setFillColor(197, 160, 89);
-  doc.rect(margin, 10.5, contentWidth, 0.8, 'F');
+  doc.rect(margin, 7.8, contentWidth, 0.6, 'F');
 
-  // Logo Oficial no Cabeçalho (Posicionado alto para não encavalar com os textos)
-  let currentY = 13;
+  // Logo Oficial no Cabeçalho (Posicionado alto: y=9.5mm, h=17.3mm -> termina em 26.8mm)
+  const logoWidth = 15;
+  const logoHeight = 17.3;
+  const logoY = 9.5;
+
   if (logoDataUrl) {
     try {
-      const logoWidth = 18;
-      const logoHeight = 18;
-      doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - logoWidth / 2, currentY, logoWidth, logoHeight);
-      currentY += logoHeight + 6;
+      doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - logoWidth / 2, logoY, logoWidth, logoHeight);
     } catch {
-      currentY += 4;
+      // ignore
     }
-  } else {
-    currentY += 6;
   }
 
   // Cabeçalho da prescrição sem caixa alta
+  let currentY = 32.5;
   doc.setTextColor(26, 60, 52);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
@@ -390,7 +397,7 @@ export async function generatePrescricaoPdf({
   }
 
   doc.setDrawColor(26, 60, 52);
-  doc.setLineWidth(0.4);
+  doc.setLineWidth(0.5);
   doc.line(pageWidth / 2 - 40, signBlockY, pageWidth / 2 + 40, signBlockY);
 
   doc.setFont('helvetica', 'bold');
@@ -401,8 +408,8 @@ export async function generatePrescricaoPdf({
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(80, 90, 85);
-  doc.text(`${DOCTOR_INFO.crm} • ${DOCTOR_INFO.rqe}`, pageWidth / 2, signBlockY + 8.5, { align: 'center' });
+  doc.text(`${DOCTOR_INFO.specialty} • ${DOCTOR_INFO.crm} • ${DOCTOR_INFO.rqe}`, pageWidth / 2, signBlockY + 8.5, { align: 'center' });
 
-  const fileDocName = `${tipo.toLowerCase().replace(/\s+/g, '_')}_${pacienteNome.toLowerCase().replace(/\s+/g, '_')}.pdf`;
-  doc.save(fileDocName);
+  const fileName = `${tipo.toLowerCase().replace(/\s+/g, '_')}_${pacienteNome.toLowerCase().replace(/\s+/g, '_')}.pdf`;
+  doc.save(fileName);
 }
