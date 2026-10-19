@@ -157,8 +157,8 @@ export function PublicLandingPage() {
     <div className="min-h-screen bg-[#F9FAF8] text-[#192723]">
       
       {/* Barra Oficial de Conformidade Ética CFM */}
-      <div className="compliance-bar" role="region" aria-label="Identificação Profissional">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-x-2.5 sm:gap-x-3 gap-y-1 text-[11px] sm:text-xs">
+      <div className="compliance-bar w-full" role="region" aria-label="Identificação Profissional">
+        <div className="w-full px-4 sm:px-8 lg:px-12 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 gap-y-1 text-[11px] sm:text-xs">
           <span className="font-semibold text-white tracking-wide">
             {DOCTOR_INFO.fullName || DOCTOR_INFO.name}
           </span>
@@ -213,7 +213,7 @@ export function PublicLandingPage() {
           <div className="header-desktop-actions">
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-[#28574A] text-stone-700 hover:text-[#1A3C34] hover:border-[#C5A059] hover:bg-stone-50 text-xs font-semibold transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#28574A] text-stone-700 hover:text-[#1A3C34] hover:border-[#C5A059] hover:bg-stone-50 text-xs font-semibold transition-all whitespace-nowrap shrink-0"
               title="Acesso Seguro ao Sistema Clínico"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#C5A059]">
@@ -226,8 +226,8 @@ export function PublicLandingPage() {
               href={`https://wa.me/${DOCTOR_INFO.whatsappNumber}?text=${encodeURIComponent('Olá, Dra. Cibele. Gostaria de agendar uma Teleconsulta.')}`}
               target="_blank" 
               rel="noopener noreferrer" 
-              className="btn-outline-gold" 
-              style={{ fontSize: '0.8rem', padding: '0.5rem 0.9rem' }} 
+              className="btn-outline-gold whitespace-nowrap shrink-0 inline-flex items-center gap-1.5" 
+              style={{ fontSize: '0.825rem', padding: '0.55rem 1rem' }} 
               title="Agendar Teleconsulta Online"
               onClick={() => trackWhatsAppClick({ location: 'header_teleconsulta', service: 'Teleconsulta', label: 'Botão Teleconsulta Header' })}
             >
@@ -242,9 +242,9 @@ export function PublicLandingPage() {
               href={`https://wa.me/${DOCTOR_INFO.whatsappNumber}?text=${encodeURIComponent('Olá, gostaria de agendar uma consulta com a Dra. Cibele Cristina.')}`}
               target="_blank" 
               rel="noopener noreferrer" 
-              className="btn-gold" 
+              className="btn-gold whitespace-nowrap shrink-0 inline-flex items-center gap-1.5" 
               aria-label="Agendar via WhatsApp"
-              style={{ fontSize: '0.85rem', padding: '0.55rem 1.1rem' }}
+              style={{ fontSize: '0.85rem', padding: '0.6rem 1.25rem' }}
               onClick={() => trackWhatsAppClick({ location: 'header_agendar', service: 'Consulta Médica', label: 'Botão Agendar Consulta Header' })}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
