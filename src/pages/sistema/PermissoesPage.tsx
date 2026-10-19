@@ -185,7 +185,7 @@ export const PermissoesPage: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `backup_medicinarte_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `backup_dra_cibele_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setBackupFeedback('Backup JSON da clínica gerado e baixado com sucesso!');

@@ -223,7 +223,7 @@ export const ResetSenhaPage: React.FC = () => {
               Nova Senha de Acesso
             </h1>
             <p className="text-xs text-[#D4AF37] font-medium mt-1">
-              CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA
+              Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078
             </p>
             <p className="text-xs text-stone-400 mt-2">
               {perfilNome 

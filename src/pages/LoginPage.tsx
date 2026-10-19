@@ -570,7 +570,7 @@ export const LoginPage: React.FC = () => {
       {/* Rodapé Institucional */}
       <footer className="relative z-20 border-t border-[#1E4339] bg-[#0A1A16] py-3.5 px-4 text-center text-xs text-stone-400">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px]">
-          <span>Cibele Cristina Serviços Médicos Ltda • CRM-AC PJ 258</span>
+          <span>Consultório Médico — Bosque Medical Center</span>
           <span>Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078</span>
         </div>
       </footer>

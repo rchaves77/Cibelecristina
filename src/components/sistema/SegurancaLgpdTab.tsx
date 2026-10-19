@@ -31,7 +31,7 @@ export const SegurancaLgpdTab: React.FC = () => {
 
   const fullDossieText = `Prezada Dra. Cibele Cristina,
 
-Recebemos com muita alegria o seu retorno tão positivo sobre a Área Restrita e o Prontuário Integrado da Clínica Medicinarte! É uma honra e um privilégio apoiar a sua prática médica com uma tecnologia sólida, humanizada e em estrito cumprimento às normas éticas e legais.
+Recebemos com muita alegria o seu retorno tão positivo sobre a Área Restrita e o Prontuário Integrado do Consultório da Dra. Cibele Cristina! É uma honra e um privilégio apoiar a sua prática médica com uma tecnologia sólida, humanizada e em estrito cumprimento às normas éticas e legais.
 
 Respondemos abaixo, ponto a ponto, com total transparência e detalhamento técnico, às 10 questões levantadas, além das melhorias de segurança que já deixamos ativas para você:
 
@@ -64,12 +64,12 @@ Sim. Garantimos o Direito à Portabilidade dos Dados (LGPD Art. 18). Você pode:
 - Baixar a base de dados completa da clínica a qualquer momento em formatos abertos (JSON e CSV), incluindo pacientes, histórico clínico, prescrições e logs.
 
 7. CONTINUIDADE, CANCELAMENTO E NÃO APRISIONAMENTO ("SEM LOCK-IN"):
-Todos os dados pertencem única e exclusivamente à Clínica Medicinarte e à Dra. Cibele Cristina. Caso um dia decida encerrar ou migrar:
+Todos os dados pertencem única e exclusivamente à Dra. Cibele Cristina. Caso um dia decida encerrar ou migrar:
 - Entregamos o dump completo e criptografado de toda a base e o arquivo de prontuários em PDF;
 - Conforme a Lei Federal nº 13.787/2018 e o CFM, garantimos o suporte para que o histórico seja preservado pelo prazo legal de guarda obrigatória de 20 anos.
 
 8. RESPONSABILIDADE E ESTRUTURAÇÃO LGPD:
-• A Dra. Cibele Cristina / MEDICINARTE SERVIÇOS MÉDICOS LTDA atua como Controladora dos Dados Pessoais (quem define as finalidades clínicas do tratamento).
+• A Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078) atua como Controladora dos Dados Pessoais (quem define as finalidades clínicas do tratamento).
 • O software atua estritamente como Operador Técnico de infraestrutura.
 • O tratamento de dados sensíveis de saúde é respaldado pelo Art. 11 da LGPD (tutela da saúde por profissionais de saúde e cumprimento de obrigação legal).
 
@@ -92,10 +92,10 @@ Conforme sua excelente sugestão, já implementamos o módulo de "Anexos do Pron
 - Relatórios externos e termos de consentimento.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Estamos 100% à disposição e muito empolgados para ver a Clínica Medicinarte transformando vidas com segurança e acolhimento!
+Estamos 100% à disposição e muito empolgados para ver a prática médica da Dra. Cibele Cristina transformando vidas com segurança e acolhimento!
 
 Com admiração,
-Equipe Medicinarte`;
+Equipe de Engenharia & Tecnologia Médica`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(fullDossieText);
@@ -168,7 +168,7 @@ Caso a médica precise retificar um dado, incluir o resultado de um exame recebi
       pergunta: 'Se algum dia eu cancelar a manutenção ou deixar de utilizar o sistema, como fica meu acesso e dados?',
       selo: 'Propriedade Exclusiva dos Dados (Zero Lock-in)',
       norma: 'Guarda Obrigatória por 20 Anos (Lei Federal nº 13.787/2018)',
-      resposta: `Os dados dos pacientes e da clínica pertencem 100% à Clínica Medicinarte e à Dra. Cibele Cristina. Não há fidelidade forçada nem aprisionamento de dados ("vendor lock-in").
+      resposta: `Os dados dos pacientes e do consultório pertencem 100% à Dra. Cibele Cristina. Não há fidelidade forçada nem aprisionamento de dados ("vendor lock-in").
       
 Em caso de encerramento contratual:
 • É entregue à médica um pacote completo criptografado contendo o dump de todo o banco relacional e todos os prontuários e laudos em PDF;
@@ -180,7 +180,7 @@ Em caso de encerramento contratual:
       selo: 'Controlador vs Operador Estruturados',
       norma: 'LGPD (Lei nº 13.709/2018) Art. 11 (Dados Sensíveis de Saúde)',
       resposta: `A governança está perfeitamente delimitada:
-• Controladora dos Dados: Dra. Cibele Cristina Cunha Brígido / MEDICINARTE SERVIÇOS MÉDICOS LTDA (toma as decisões clínicas e responde aos pacientes);
+• Controladora dos Dados: Dra. Cibele Cristina Cunha Brígido (CRM-AC 1810 | RQE 1078) (toma as decisões clínicas e responde aos pacientes);
 • Operador Técnico: A plataforma/desenvolvedores atuam estritamente como processadores da tecnologia segura, sob dever de sigilo contratual e confidencialidade;
 • Base Legal: O tratamento de dados de saúde é fundamentado no Art. 11, II, "f" (tutela da saúde, exclusivamente por profissionais de saúde) e "a" (cumprimento de obrigação legal médica perante o CFM). O site público já possui a Política de Privacidade (LGPD) e o canal para exercício dos direitos do titular.`
     },

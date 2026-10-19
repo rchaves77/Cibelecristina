@@ -295,14 +295,14 @@ export function LavagemOuvidoPage() {
               Clínica Própria
             </p>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.65rem' }}>
-              BOSQUE MEDICAL CENTER
+              BOSQUE MEDICAL CENTER — ANEXO AO BOSQUE OPEN MALL
             </p>
             <p style={{ fontSize: '0.95rem', color: '#2D3E38', lineHeight: 1.6, marginBottom: '0.75rem' }}>
-              📍 <strong>Rua Av. Getúlio Vargas, 1215 — Bairro Bosque</strong><br />
+              📍 <strong>Av. Getúlio Vargas, 1215 — Bairro Bosque</strong><br />
               Rio Branco - AC • CEP: 69900-466.
             </p>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              CRM-AC PJ 258 • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078)
+              Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078
             </p>
             <a 
               href={DOCTOR_INFO.googleMapsUrl} 
@@ -394,9 +394,9 @@ export function LavagemOuvidoPage() {
               {DOCTOR_INFO.crm} | {DOCTOR_INFO.rqe}
             </p>
             <p style={{ fontSize: '0.825rem', color: '#95ACA2', lineHeight: 1.5 }}>
-              <strong>CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA</strong><br />
-              Registro no CRM: CRM-AC PJ 258<br />
-              Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
+              <strong>Consultório Médico de Família e Comunidade</strong><br />
+              Dra. Cibele Cristina Cunha Brígido<br />
+              CRM-AC 1810 | RQE 1078
             </p>
             <p style={{ fontSize: '0.8rem', color: '#849E93', marginTop: '0.75rem' }}>
               Tratamento de dados em conformidade com a LGPD e sigilo ético profissional.
@@ -447,7 +447,7 @@ export function LavagemOuvidoPage() {
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Procedimento ambulatorial realizado com embasamento científico e observância às normas do CFM.</p>
+          <p>&copy; {new Date().getFullYear()} Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Procedimento ambulatorial realizado com embasamento científico e observância às normas do CFM.</p>
         </div>
       </footer>
 

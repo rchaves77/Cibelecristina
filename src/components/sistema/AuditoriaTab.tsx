@@ -63,7 +63,7 @@ export const AuditoriaTab: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `auditoria_medicinarte_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `auditoria_dra_cibele_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
 

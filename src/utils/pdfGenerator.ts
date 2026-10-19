@@ -125,8 +125,10 @@ export async function generateAtestadoPdf({
   if (!textoDeclaratorio) {
     if (validacao.tipo_documento === 'Declaração de Comparecimento') {
       textoDeclaratorio = `Declaro para os devidos fins trabalhistas e escolares que o(a) paciente ${validacao.paciente_nome} compareceu a este consultório médico em ${dataEmissao}, às ${horaEmissao} horas, para realização de consulta e procedimentos de saúde.`;
+    } else if (validacao.tipo_documento === 'Declaração de Comparecimento de Acompanhante') {
+      textoDeclaratorio = `Declaro para os devidos fins trabalhistas e escolares (Art. 473 da CLT) que o(a) acompanhante esteve presente neste consultório médico em ${dataEmissao}, prestando acompanhamento ao(à) paciente ${validacao.paciente_nome} durante a realização de consulta médica e avaliação de saúde.`;
     } else if (validacao.tipo_documento === 'Atestado Médico para Acompanhante' || validacao.tipo_documento === 'Atestado de Acompanhamento de Doente') {
-      textoDeclaratorio = `Atesto para os devidos fins trabalhistas e legais que o(a) acompanhante esteve prestando assistência indispensável ao(à) paciente ${validacao.paciente_nome} nesta data em consulta médica ambulatorial.`;
+      textoDeclaratorio = `Atesto para os devidos fins legais, trabalhistas e previdenciários (Art. 473 da CLT e resoluções do CFM) que o(a) acompanhante esteve prestando assistência e cuidados indispensáveis ao(à) paciente ${validacao.paciente_nome} nesta data em consulta médica ambulatorial, devendo permanecer afastado(a) de suas atividades laborais por ${validacao.dias_afastamento || 1} dia(s) a partir desta data para prestar suporte ao(à) paciente sob seus cuidados.`;
     } else {
       textoDeclaratorio = `Atesto para os devidos fins que o(a) paciente ${validacao.paciente_nome} esteve sob meus cuidados profissionais na presente data, necessitando de ${validacao.dias_afastamento || 1} dia(s) de repouso e afastamento de suas atividades habituais a partir desta data para recuperação de sua saúde.`;
     }

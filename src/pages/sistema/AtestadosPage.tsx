@@ -33,6 +33,13 @@ export const AtestadosPage: React.FC = () => {
   const [emitindo, setEmitindo] = useState(false);
   const [ultimoEmitido, setUltimoEmitido] = useState<ValidacaoAtestado | null>(null);
 
+  // Campos de Acompanhante
+  const [nomeAcompanhante, setNomeAcompanhante] = useState('');
+  const [cpfAcompanhante, setCpfAcompanhante] = useState('');
+  const [parentescoAcompanhante, setParentescoAcompanhante] = useState('Mãe');
+  const [horarioChegada, setHorarioChegada] = useState('08:30');
+  const [horarioSaida, setHorarioSaida] = useState('10:00');
+
   useEffect(() => {
     const pList = clinicalDb.getPacientes();
     setPacientes(pList);
@@ -46,22 +53,41 @@ export const AtestadosPage: React.FC = () => {
     return p ? p.nome : 'Paciente Sob Cuidados';
   };
 
+  const isAcompAfastamento = tipoDocumento === 'Atestado Médico para Acompanhante' || tipoDocumento === 'Atestado de Acompanhamento de Doente';
+  const isAcompComparecimento = tipoDocumento === 'Declaração de Comparecimento de Acompanhante';
+  const isAcompanhante = isAcompAfastamento || isAcompComparecimento;
+
+  const gerarTextoPadrao = () => {
+    const nomePaciente = getNomePacienteFinal();
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    const vinculo = parentescoAcompanhante.trim() ? ` (${parentescoAcompanhante.trim()})` : '';
+    const acompNome = nomeAcompanhante.trim() || 'ACOMPANHANTE';
+    const acompCpf = cpfAcompanhante.trim() ? `, portador(a) do CPF nº ${cpfAcompanhante.trim()}` : '';
+    const cidStr = cid.trim() ? ` CID-10 do(a) paciente: ${resolveCidString(cid.trim())}.` : '';
+
+    if (isAcompAfastamento) {
+      const diasStr = diasAfastamento === 1 ? '1 (um) dia' : `${diasAfastamento} (${diasAfastamento}) dias`;
+      return `Atesto para os devidos fins legais, trabalhistas e previdenciários (Art. 473 da CLT e resoluções do CFM) que o(a) Sr.(a) ${acompNome}${acompCpf}${vinculo}, esteve presente prestando assistência e cuidados indispensáveis ao(à) paciente ${nomePaciente} nesta data, devendo permanecer afastado(a) de suas atividades laborais por ${diasStr}, a partir de ${dataAtual}, para prestar suporte integral e acompanhar o tratamento e recuperação de saúde do(a) paciente sob seus cuidados.${cidStr}`;
+    }
+
+    if (isAcompComparecimento) {
+      return `Declaro para os devidos fins trabalhistas e escolares (Art. 473 da CLT) que o(a) Sr.(a) ${acompNome}${acompCpf}${vinculo}, esteve presente neste consultório médico em ${dataAtual}, no período das ${horarioChegada} às ${horarioSaida} horas, prestando acompanhamento presencial ao(à) paciente ${nomePaciente}, durante a realização de consulta médica ambulatorial e procedimentos de saúde.`;
+    }
+
+    if (tipoDocumento === 'Declaração de Comparecimento') {
+      return `Declaro para os devidos fins trabalhistas e escolares que o(a) paciente ${nomePaciente} compareceu ao consultório médico nesta data (${dataAtual}), no período das ${horarioChegada} às ${horarioSaida} horas, para realização de consulta clínica e avaliação de saúde.`;
+    }
+
+    const diasStr = diasAfastamento === 1 ? '1 (um) dia' : `${diasAfastamento} (${diasAfastamento}) dias`;
+    return `Atesto para os devidos fins que o(a) paciente ${nomePaciente} esteve sob meus cuidados profissionais na data de ${dataAtual}, devendo permanecer em repouso e afastado(a) de suas atividades laborais/escolares por ${diasStr} a partir desta data para recuperação de sua saúde.${cidStr}`;
+  };
+
   const handleEmitirAtestado = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmitindo(true);
 
     const nomePaciente = getNomePacienteFinal();
-    const dataAtual = new Date().toLocaleDateString('pt-BR');
-    const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-    let textoFinal = conteudoTexto.trim();
-    if (!textoFinal) {
-      if (tipoDocumento === 'Declaração de Comparecimento') {
-        textoFinal = `Declaro para os devidos fins que o(a) paciente ${nomePaciente} compareceu ao consultório médico nesta data, das ${horaAtual} horas, para realização de consulta clínica e avaliação de saúde.`;
-      } else {
-        textoFinal = `Atesto para os devidos fins que o(a) paciente ${nomePaciente} esteve sob meus cuidados profissionais na data de ${dataAtual}, devendo permanecer em repouso e afastado(a) de suas atividades laborais/escolares por ${diasAfastamento} dia(s) a partir desta data para recuperação de sua saúde.`;
-      }
-    }
+    let textoFinal = conteudoTexto.trim() || gerarTextoPadrao();
 
     // 1. Cria validação no banco com UUID
     const novaValidacao = clinicalDb.createValidacao({
@@ -69,7 +95,7 @@ export const AtestadosPage: React.FC = () => {
       profissional_nome: `${DOCTOR_INFO.fullName} (${DOCTOR_INFO.crm} | ${DOCTOR_INFO.rqe})`,
       tipo_documento: tipoDocumento,
       conteudo_texto: textoFinal,
-      dias_afastamento: diasAfastamento,
+      dias_afastamento: (tipoDocumento === 'Atestado Médico' || isAcompAfastamento) ? diasAfastamento : undefined,
       cid: cid.trim() ? resolveCidString(cid.trim()) : undefined
     });
 
@@ -104,7 +130,7 @@ export const AtestadosPage: React.FC = () => {
             <span className="text-xs text-stone-500">Validação Pública Antifraude</span>
           </div>
           <h2 className="font-serif font-bold text-xl text-stone-900 mt-1">
-            Emissão de Atestados Médicos e Laudos
+            Emissão de Atestados Médicos, Acompanhante e Laudos
           </h2>
         </div>
 
@@ -127,14 +153,24 @@ export const AtestadosPage: React.FC = () => {
                 </label>
                 <select
                   value={tipoDocumento}
-                  onChange={(e) => setTipoDocumento(e.target.value as any)}
-                  className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
+                  onChange={(e) => {
+                    const novoTipo = e.target.value as any;
+                    setTipoDocumento(novoTipo);
+                  }}
+                  className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34] bg-stone-50/50 font-medium"
                 >
-                  <option value="Atestado Médico">Atestado Médico (Afastamento)</option>
-                  <option value="Atestado de Acompanhamento de Doente">Atestado de Acompanhamento de Doente / Familiar</option>
-                  <option value="Declaração de Comparecimento">Declaração de Comparecimento</option>
-                  <option value="Laudo Médico">Laudo Médico Pericial</option>
-                  <option value="Relatório de Saúde">Relatório de Acompanhamento</option>
+                  <optgroup label="Atestados do Paciente">
+                    <option value="Atestado Médico">Atestado Médico (Afastamento do Paciente)</option>
+                    <option value="Declaração de Comparecimento">Declaração de Comparecimento (Paciente)</option>
+                  </optgroup>
+                  <optgroup label="Documentos para o Acompanhante (CLT Art. 473)">
+                    <option value="Atestado Médico para Acompanhante">Atestado Médico para Acompanhante (Afastamento do Familiar)</option>
+                    <option value="Declaração de Comparecimento de Acompanhante">Declaração de Comparecimento do Acompanhante (Horas)</option>
+                  </optgroup>
+                  <optgroup label="Laudos e Relatórios">
+                    <option value="Laudo Médico">Laudo Médico Pericial</option>
+                    <option value="Relatório de Saúde">Relatório de Saúde</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -150,7 +186,7 @@ export const AtestadosPage: React.FC = () => {
                   }}
                   className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
                 >
-                  <option value={0}>-- Ou digitar abaixo --</option>
+                  <option value={0}>-- Ou digitar paciente avulso abaixo --</option>
                   {pacientes.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nome} ({p.telefone})
@@ -162,7 +198,7 @@ export const AtestadosPage: React.FC = () => {
 
             <div>
               <label className="text-xs font-semibold text-stone-700 block mb-1">
-                Ou Nome Completo do Paciente (Avulso)
+                Nome Completo do Paciente {selectedPacienteId > 0 ? '(Selecionado acima)' : '(Avulso)'}
               </label>
               <input
                 type="text"
@@ -173,11 +209,120 @@ export const AtestadosPage: React.FC = () => {
               />
             </div>
 
+            {/* SEÇÃO DEDICADA DO ACOMPANHANTE */}
+            {isAcompanhante && (
+              <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                    👥 Dados do Acompanhante (Resguardado pela CLT Art. 473)
+                  </span>
+                  <span className="text-[11px] text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                    {isAcompAfastamento ? 'Afastamento Laboral' : 'Horas de Consulta'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-semibold text-emerald-900 block mb-1">
+                      Nome Completo do Acompanhante *
+                    </label>
+                    <input
+                      type="text"
+                      value={nomeAcompanhante}
+                      onChange={(e) => setNomeAcompanhante(e.target.value)}
+                      placeholder="Ex: Carlos Eduardo de Oliveira"
+                      className="w-full text-xs p-2.5 rounded-xl border border-emerald-300 bg-white focus:ring-1 focus:ring-emerald-700"
+                      required={isAcompanhante}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-emerald-900 block mb-1">
+                      CPF do Acompanhante
+                    </label>
+                    <input
+                      type="text"
+                      value={cpfAcompanhante}
+                      onChange={(e) => setCpfAcompanhante(e.target.value)}
+                      placeholder="000.000.000-00"
+                      className="w-full text-xs p-2.5 rounded-xl border border-emerald-300 bg-white focus:ring-1 focus:ring-emerald-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-emerald-900 block mb-1">
+                      Grau de Parentesco / Vínculo
+                    </label>
+                    <select
+                      value={parentescoAcompanhante}
+                      onChange={(e) => setParentescoAcompanhante(e.target.value)}
+                      className="w-full text-xs p-2.5 rounded-xl border border-emerald-300 bg-white focus:ring-1 focus:ring-emerald-700"
+                    >
+                      <option value="Mãe">Mãe</option>
+                      <option value="Pai">Pai</option>
+                      <option value="Cônjuge / Companheiro(a)">Cônjuge / Companheiro(a)</option>
+                      <option value="Filho(a)">Filho(a)</option>
+                      <option value="Irmão(ã)">Irmão(ã)</option>
+                      <option value="Avô / Avó">Avô / Avó</option>
+                      <option value="Tio(a)">Tio(a)</option>
+                      <option value="Cuidador(a) Legal">Cuidador(a) Legal</option>
+                      <option value="Responsável">Responsável</option>
+                      <option value="Acompanhante">Outro Vínculo</option>
+                    </select>
+                  </div>
+
+                  {isAcompAfastamento ? (
+                    <div>
+                      <label className="text-[11px] font-semibold text-emerald-900 block mb-1">
+                        Dias de Afastamento do Acompanhante
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={diasAfastamento}
+                        onChange={(e) => setDiasAfastamento(Number(e.target.value))}
+                        className="w-full text-xs p-2.5 rounded-xl border border-emerald-300 bg-white focus:ring-1 focus:ring-emerald-700"
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] font-semibold text-emerald-900 block mb-1">
+                          Entrada
+                        </label>
+                        <input
+                          type="time"
+                          value={horarioChegada}
+                          onChange={(e) => setHorarioChegada(e.target.value)}
+                          className="w-full text-xs p-2 rounded-xl border border-emerald-300 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-emerald-900 block mb-1">
+                          Saída
+                        </label>
+                        <input
+                          type="time"
+                          value={horarioSaida}
+                          onChange={(e) => setHorarioSaida(e.target.value)}
+                          className="w-full text-xs p-2 rounded-xl border border-emerald-300 bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* SELEÇÃO DE DIAS E CID PARA ATESTADO MÉDICO PADRÃO */}
             {tipoDocumento === 'Atestado Médico' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-stone-700 block mb-1">
-                    Dias de Afastamento
+                    Dias de Afastamento do Paciente
                   </label>
                   <input
                     type="number"
@@ -191,28 +336,68 @@ export const AtestadosPage: React.FC = () => {
 
                 <div>
                   <CidAutocompleteInput
-                    label="Diagnóstico CID-10"
+                    label="Diagnóstico CID-10 (Paciente)"
                     value={cid}
                     onChange={(val) => setCid(val)}
-                    placeholder="Digite código sem ponto (ex: k041, j00) ou patologia (ex: gripe, cerume)..."
-                    helperText="Conforme Resolução CFM 1.658/2002, registro sob consentimento do paciente."
+                    placeholder="Digite código sem ponto (ex: k041, j00) ou patologia..."
+                    helperText="Conforme Resolução CFM 1.658/2002, sob consentimento."
                     formatStyle="full"
                   />
                 </div>
               </div>
             )}
 
+            {/* COMPARECIMENTO NORMAL DO PACIENTE */}
+            {tipoDocumento === 'Declaração de Comparecimento' && (
+              <div className="grid grid-cols-2 gap-4 p-3 bg-stone-50 rounded-xl border border-stone-200">
+                <div>
+                  <label className="text-[11px] font-semibold text-stone-700 block mb-1">
+                    Horário de Chegada
+                  </label>
+                  <input
+                    type="time"
+                    value={horarioChegada}
+                    onChange={(e) => setHorarioChegada(e.target.value)}
+                    className="w-full text-xs p-2 rounded-xl border border-stone-300 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-stone-700 block mb-1">
+                    Horário de Saída
+                  </label>
+                  <input
+                    type="time"
+                    value={horarioSaida}
+                    onChange={(e) => setHorarioSaida(e.target.value)}
+                    className="w-full text-xs p-2 rounded-xl border border-stone-300 bg-white"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
-              <label className="text-xs font-semibold text-stone-700 block mb-1">
-                Texto Declaratório (Deixe em branco para usar o texto padrão oficial)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-stone-700 block">
+                  Texto Declaratório do Documento
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setConteudoTexto(gerarTextoPadrao())}
+                  className="text-[11px] text-[#1A3C34] hover:underline font-semibold flex items-center gap-1"
+                >
+                  <span>⚡ Carregar texto padrão oficial</span>
+                </button>
+              </div>
               <textarea
                 rows={4}
                 value={conteudoTexto}
                 onChange={(e) => setConteudoTexto(e.target.value)}
-                placeholder="Texto personalizado ou justificativa clínica do afastamento..."
+                placeholder={gerarTextoPadrao()}
                 className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-1 focus:ring-[#1A3C34]"
               />
+              <span className="text-[10px] text-stone-500 block mt-0.5">
+                * Se mantido em branco, o texto padrão gerado automaticamente acima será utilizado na impressão do PDF oficial.
+              </span>
             </div>
 
             {/* ASSINATURA DIGITAL TOUCHSCREEN / MOUSE */}
@@ -230,7 +415,7 @@ export const AtestadosPage: React.FC = () => {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1A3C34] hover:bg-[#142E28] text-white text-xs font-semibold shadow-md transition-all disabled:opacity-50"
               >
                 <Download size={16} />
-                <span>{emitindo ? 'Gerando Documento e QR Code...' : 'Emitir Atestado com QR Code (PDF)'}</span>
+                <span>{emitindo ? 'Gerando Documento e QR Code...' : 'Emitir Documento com QR Code (PDF)'}</span>
               </button>
             </div>
           </form>

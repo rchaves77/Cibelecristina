@@ -131,7 +131,7 @@ export interface ValidacaoAtestado {
   id: string; // UUID
   paciente_nome: string;
   profissional_nome: string;
-  tipo_documento: 'Atestado Médico' | 'Atestado de Acompanhamento de Doente' | 'Atestado Médico para Acompanhante' | 'Declaração de Comparecimento' | 'Laudo Médico' | 'Relatório de Saúde';
+  tipo_documento: 'Atestado Médico' | 'Atestado de Acompanhamento de Doente' | 'Atestado Médico para Acompanhante' | 'Declaração de Comparecimento' | 'Declaração de Comparecimento de Acompanhante' | 'Laudo Médico' | 'Relatório de Saúde';
   dias_afastamento?: number;
   cid?: string;
   conteudo_texto: string;

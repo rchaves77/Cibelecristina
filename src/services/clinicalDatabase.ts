@@ -70,7 +70,7 @@ const INITIAL_PERFIS: Perfil[] = [
     id: 'perfil-cibele',
     nome: 'Dra. Cibele Cristina Cunha Brígido',
     usuario: 'cibele',
-    email: 'cibele@medicinarte.com.br',
+    email: 'cibele@dracibelecristina.med.br',
     role: 'profissional',
     cor: '#1A3C34', // Verde Floresta Oficial
     permissao_financeiro: true,
@@ -91,7 +91,7 @@ const INITIAL_PERFIS: Perfil[] = [
     id: 'perfil-secretaria',
     nome: 'Recepção / Secretária Clínica',
     usuario: 'recepcao',
-    email: 'recepcao@medicinarte.com.br',
+    email: 'recepcao@dracibelecristina.med.br',
     role: 'secretaria',
     cor: '#C5A059', // Ouro Suave Oficial
     permissao_financeiro: false,
@@ -110,7 +110,7 @@ const INITIAL_PERFIS: Perfil[] = [
     id: 'perfil-admin',
     nome: 'Administrador de Sistema (TI / Gestão)',
     usuario: 'ti',
-    email: 'admin@medicinarte.com.br',
+    email: 'admin@dracibelecristina.med.br',
     role: 'admin',
     cor: '#2D3748',
     permissao_financeiro: true,
@@ -988,7 +988,7 @@ class ClinicalDatabaseService {
         success: false,
         token: '',
         link: '',
-        mensagemPreview: 'Perfil não localizado no sistema Medicinarte.'
+        mensagemPreview: 'Perfil não localizado no sistema da Dra. Cibele Cristina.'
       };
     }
 
@@ -1005,7 +1005,7 @@ class ClinicalDatabaseService {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dracibelecristina.med.br';
     const link = `${baseUrl}/reset-senha?token=${token}&email=${encodeURIComponent(perfis[idx].email)}`;
 
-    const mensagemPreview = `Olá, ${perfis[idx].nome}.\n\nRecebemos uma solicitação para redefinir a sua senha de acesso ao Sistema Clínico Medicinarte da Dra. Cibele Cristina.\n\nPara cadastrar sua nova senha com segurança, clique no link abaixo (válido por 24 horas):\n${link}\n\nSe você não solicitou esta redefinição, por favor ignore este aviso.\n\nMEDICINARTE SERVIÇOS MÉDICOS LTDA\nDra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
+    const mensagemPreview = `Olá, ${perfis[idx].nome}.\n\nRecebemos uma solicitação para redefinir a sua senha de acesso ao Sistema Clínico da Dra. Cibele Cristina.\n\nPara cadastrar sua nova senha com segurança, clique no link abaixo (válido por 24 horas):\n${link}\n\nSe você não solicitou esta redefinição, por favor ignore este aviso.\n\nConsultório Dra. Cibele Cristina\nDra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
 
     return {
       success: true,

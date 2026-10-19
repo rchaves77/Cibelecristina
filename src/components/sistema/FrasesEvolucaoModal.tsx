@@ -99,8 +99,10 @@ const DEFAULT_FRASES: FraseEvolucao[] = [
   }
 ];
 
-const STORAGE_KEY_FRASES = 'medicinarte_frases_evolucao_v2';
-const STORAGE_KEY_CATS = 'medicinarte_categorias_evolucao_v2';
+const STORAGE_KEY_FRASES = 'dracibele_frases_evolucao_v2';
+const STORAGE_KEY_CATS = 'dracibele_categorias_evolucao_v2';
+const LEGACY_STORAGE_KEY_FRASES = 'medicinarte_frases_evolucao_v2';
+const LEGACY_STORAGE_KEY_CATS = 'medicinarte_categorias_evolucao_v2';
 
 interface FrasesEvolucaoModalProps {
   isOpen: boolean;
@@ -150,17 +152,19 @@ export const FrasesEvolucaoModal: React.FC<FrasesEvolucaoModalProps> = ({
   // Carrega e inicializa dados do localStorage
   useEffect(() => {
     try {
-      const savedCats = localStorage.getItem(STORAGE_KEY_CATS);
+      const savedCats = localStorage.getItem(STORAGE_KEY_CATS) || localStorage.getItem(LEGACY_STORAGE_KEY_CATS);
       if (savedCats) {
         setCategorias(JSON.parse(savedCats));
+        localStorage.setItem(STORAGE_KEY_CATS, savedCats);
       } else {
         setCategorias(DEFAULT_CATEGORIAS);
         localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(DEFAULT_CATEGORIAS));
       }
 
-      const savedFrases = localStorage.getItem(STORAGE_KEY_FRASES);
+      const savedFrases = localStorage.getItem(STORAGE_KEY_FRASES) || localStorage.getItem(LEGACY_STORAGE_KEY_FRASES);
       if (savedFrases) {
         setFrases(JSON.parse(savedFrases));
+        localStorage.setItem(STORAGE_KEY_FRASES, savedFrases);
       } else {
         setFrases(DEFAULT_FRASES);
         localStorage.setItem(STORAGE_KEY_FRASES, JSON.stringify(DEFAULT_FRASES));

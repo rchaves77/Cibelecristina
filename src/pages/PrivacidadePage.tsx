@@ -51,9 +51,9 @@ export function PrivacidadePage() {
               Política de Privacidade e Proteção de Dados (LGPD)
             </h1>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA • CRM-AC PJ 258<br />
-              Dra. Cibele Cristina Cunha Brígido — CRM-AC 1810 / RQE 1078<br />
-              Última atualização: Setembro de 2026
+              Consultório Médico Dra. Cibele Cristina Cunha Brígido<br />
+              CRM-AC 1810 / RQE 1078<br />
+              Última atualização: Outubro de 2026
             </p>
           </div>
 
@@ -64,7 +64,7 @@ export function PrivacidadePage() {
                 1. Compromisso Ético e Enquadramento Legal
               </h2>
               <p>
-                A <strong>CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA</strong>, sob responsabilidade técnica da médica especialista em Medicina de Família e Comunidade <strong>Dra. Cibele Cristina</strong>, tem como pilar fundamental o respeito à dignidade humana, a confidencialidade das informações clínicas e a privacidade dos seus pacientes e usuários.
+                O consultório da médica especialista em Medicina de Família e Comunidade <strong>Dra. Cibele Cristina Cunha Brígido</strong> tem como pilar fundamental o respeito à dignidade humana, a confidencialidade das informações clínicas e a privacidade dos seus pacientes e usuários.
               </p>
               <p>
                 Esta política foi elaborada em estrita conformidade com a <strong>Lei Geral de Proteção de Dados Pessoais (Lei Federal nº 13.709/2018 — LGPD)</strong>, o Marco Civil da Internet (Lei nº 12.965/2014) e as normas deontológicas emitidas pelo <strong>Conselho Federal de Medicina (CFM)</strong> e pelo Conselho Regional de Medicina do Estado do Acre (CRM-AC).
@@ -148,11 +148,11 @@ export function PrivacidadePage() {
                 Para exercer seus direitos de titular ou esclarecer qualquer dúvida sobre o tratamento de suas informações, você pode entrar em contato diretamente conosco:
               </p>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
-                <strong style={{ fontSize: '1.05rem', color: 'var(--accent)' }}>Bosque Medical Center </strong><br />
-                <strong>CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA</strong><br />
-                📍 Av. Getúlio Vargas, 1215, — Bairro Bosque, Rio Branco/AC • CEP: 69900-466<br />
+                <strong style={{ fontSize: '1.05rem', color: 'var(--accent)' }}>Bosque Medical Center — Anexo ao Bosque Open Mall</strong><br />
+                <strong>Dra. Cibele Cristina — Médica de Família e Comunidade</strong><br />
+                📍 Av. Getúlio Vargas, 1215 — Bairro Bosque, Rio Branco/AC • CEP: 69900-466<br />
                 📱 WhatsApp: <strong>{DOCTOR_INFO.phone}</strong><br />
-                Responsável Técnica: <strong>Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078</strong>
+                CRM-AC 1810 / RQE 1078
               </p>
             </section>
 
@@ -170,7 +170,7 @@ export function PrivacidadePage() {
       {/* Footer */}
       <footer className="site-footer">
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Tratamento ético de dados em conformidade com a LGPD e o Código de Ética Médica.</p>
+          <p>&copy; {new Date().getFullYear()} Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Tratamento ético de dados em conformidade com a LGPD e o Código de Ética Médica.</p>
         </div>
       </footer>
 

@@ -383,7 +383,7 @@ export async function dispatchResetEmail(params: {
 
   const mensagemPreview = `Olá, ${params.nome}!
 
-Você foi cadastrado(a) no Sistema Clínico Medicinarte da Dra. Cibele Cristina.
+Você foi cadastrado(a) no Sistema Clínico da Dra. Cibele Cristina.
 
 Suas informações de acesso cadastradas:
 • Nome Completo: ${params.nome}
@@ -398,7 +398,7 @@ Após salvar sua senha, você poderá acessar o sistema diretamente por:
 ${baseUrl}/login
 
 Atenciosamente,
-MEDICINARTE SERVIÇOS MÉDICOS LTDA
+Consultório Dra. Cibele Cristina
 Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
 
   const assuntoEmail = encodeURIComponent(`Dados de Cadastro e Redefinição de Senha — Dra. Cibele Cristina`);
@@ -432,7 +432,7 @@ Dra. Cibele Cristina — CRM-AC 1810 | RQE 1078`;
  * Script DDL de criação de tabelas para o SQL Editor do Supabase
  */
 export const SUPABASE_SQL_SCHEMA = `-- =======================================================
--- SCHEMA MEDICINARTE & DRA. CIBELE CRISTINA (SUPABASE)
+-- SCHEMA DRA. CIBELE CRISTINA (SUPABASE)
 -- Execute este script no SQL Editor do seu painel Supabase
 -- =======================================================
 
@@ -469,8 +469,8 @@ ALTER TABLE public.perfis ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAUL
 INSERT INTO public.perfis (id, nome, email, senha, role, permissao_financeiro, permissao_agendar, permissao_confirmacao_amanha)
 VALUES 
   ('perfil-master', 'Diretoria Executiva / Master', 'clienteboxplus@gmail.com', 'admin123', 'admin', true, true, true),
-  ('perfil-cibele', 'Dra. Cibele Cristina Cunha Brígido', 'cibele@medicinarte.com.br', 'cibele123', 'profissional', true, true, true),
-  ('perfil-secretaria', 'Recepção / Secretária Clínica', 'recepcao@medicinarte.com.br', 'recepcao123', 'secretaria', false, true, true)
+  ('perfil-cibele', 'Dra. Cibele Cristina Cunha Brígido', 'cibele@dracibelecristina.med.br', 'cibele123', 'profissional', true, true, true),
+  ('perfil-secretaria', 'Recepção / Secretária Clínica', 'recepcao@dracibelecristina.med.br', 'recepcao123', 'secretaria', false, true, true)
 ON CONFLICT (id) DO UPDATE SET
   email = EXCLUDED.email,
   senha = EXCLUDED.senha,

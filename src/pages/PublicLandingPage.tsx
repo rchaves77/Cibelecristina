@@ -167,7 +167,7 @@ export function PublicLandingPage() {
           <span className="text-[#C5A059]">•</span>
           <span className="text-stone-300">Especialista em {DOCTOR_INFO.specialty} ({DOCTOR_INFO.rqe})</span>
           <span className="text-[#C5A059] hidden sm:inline">•</span>
-          <span className="text-stone-300 hidden sm:inline">{DOCTOR_INFO.clinicCrmPj}</span>
+          <span className="text-stone-300 hidden sm:inline">{DOCTOR_INFO.clinicName}</span>
         </div>
       </div>
 
@@ -1401,9 +1401,9 @@ export function PublicLandingPage() {
               {DOCTOR_INFO.crm} | {DOCTOR_INFO.rqe}
             </p>
             <p style={{ fontSize: '0.825rem', color: '#95ACA2', lineHeight: 1.5, marginTop: '0.4rem' }}>
-              <strong>CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA</strong><br />
-              Registro no CRM: CRM-AC PJ 258<br />
-              Dra. Cibele Cristina — CRM-AC 1810 / RQE 1078
+              <strong>Consultório Médico de Família e Comunidade</strong><br />
+              Dra. Cibele Cristina Cunha Brígido<br />
+              CRM-AC 1810 | RQE 1078
             </p>
             <p style={{ fontSize: '0.78rem', color: '#849E93', marginTop: '0.6rem' }}>
               Tratamento ético e seguro de dados em conformidade com a LGPD e o Código de Ética Médica.
@@ -1480,7 +1480,7 @@ export function PublicLandingPage() {
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; {currentYear} CIBELE CRISTINA SERVIÇOS MÉDICOS LTDA • Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Informações em conformidade com as diretrizes do Conselho Federal de Medicina (CFM) e Lei Geral de Proteção de Dados (LGPD).</p>
+          <p>&copy; {currentYear} Dra. Cibele Cristina (CRM-AC 1810 | RQE 1078). Informações em conformidade com as diretrizes do Conselho Federal de Medicina (CFM) e Lei Geral de Proteção de Dados (LGPD).</p>
         </div>
       </footer>
 
